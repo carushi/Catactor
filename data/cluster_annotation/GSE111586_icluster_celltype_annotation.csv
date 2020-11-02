@@ -1,0 +1,25 @@
+cluster,celltype,0
+Hematopoietic progenitors,NA,0
+Unknown,NA,0
+Regulatory T cells,NA,0
+Sperm,NA,0
+Inhibitory neurons,IN,0
+SOM+ Interneurons,IN,0
+B cells,NA,0
+Macrophages,NA,0
+Microglia,MG,0
+Dendritic cells,NA,0
+Astrocytes,AC,0
+T cells,NA,0
+Oligodendrocytes,OG,0
+Endothelial I cells,OT,0
+Endothelial II cells,OT,0
+Monocytes,NA,0
+Podocytes,NA,0
+Collisions,NA,0
+Purkinje cells,IN,0
+Immature B cells,NA,0
+Ex. neurons SCPN,EX,0
+Ex. neurons CPN,EX,0
+Ex. neurons CThPN,EX,0
+Cerebellar granule cells,EX,0

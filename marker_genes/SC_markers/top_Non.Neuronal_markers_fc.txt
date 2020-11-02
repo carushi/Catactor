@@ -1,0 +1,9 @@
+# Marker list generated on 2019-08-01. Ordered by recurrence among DE genes (FC > 4, detection_rate > 0.05). Based on: macosko_10x_Non.Neuronal.txt, regev_10x_Non.Neuronal.txt, zeng_10x_cells_Non.Neuronal.txt, zeng_10x_nuclei_Non.Neuronal.txt, zeng_smart_cells_Non.Neuronal.txt, zeng_smart_nuclei_Non.Neuronal.txt.
+"gene" "recurrence" "average_auroc" "average_fold_change" "average_detection" "average_expression" "average_precision" "maximal_reccurrence" "macosko_10x_Non.Neuronal.txt" "regev_10x_Non.Neuronal.txt" "zeng_10x_cells_Non.Neuronal.txt" "zeng_10x_nuclei_Non.Neuronal.txt" "zeng_smart_cells_Non.Neuronal.txt" "zeng_smart_nuclei_Non.Neuronal.txt"
+"Plp1" 6 0.650914467509703 691.174162982862 0.388135458731075 8671.95439682705 0.0724555047584235 6 1 1 1 1 1 1
+"Slco1c1" 6 0.672241217329344 265.868745106883 0.349905055089599 554.693901190826 0.432099969339735 6 1 1 1 1 1 1
+"Slc1a3" 6 0.760489142706029 253.441506790179 0.535806531677742 1403.65840145642 0.283314769437562 6 1 1 1 1 1 1
+"Mfge8" 6 0.686933089708108 233.582363642164 0.382877394444829 755.674275920043 0.300576457700568 6 1 1 1 1 1 1
+"Ptgds" 6 0.612229915733513 224.856903529068 0.302870384967268 1757.10071023191 0.100446228390647 6 1 1 1 1 1 1
+"Gpr37l1" 6 0.671727758794577 217.275859316036 0.355819964505947 657.806414750083 0.305861131926314 6 1 1 1 1 1 1
+"Apoe" 6 0.787440320263327 198.941995548439 0.632274799518223 3267.75381364155 0.097106186877415 6 1 1 1 1 1 1

@@ -1,0 +1,4 @@
+# Marker list generated on 2019-08-01. Ordered by recurrence among DE genes (FC > 4, detection_rate > 0.05). Based on: macosko_10x_GABAergic.txt, regev_10x_GABAergic.txt, zeng_10x_cells_GABAergic.txt, zeng_10x_nuclei_GABAergic.txt, zeng_smart_cells_GABAergic.txt, zeng_smart_nuclei_GABAergic.txt.
+"gene" "recurrence" "average_auroc" "average_fold_change" "average_detection" "average_expression" "average_precision" "maximal_reccurrence" "macosko_10x_GABAergic.txt" "regev_10x_GABAergic.txt" "zeng_10x_cells_GABAergic.txt" "zeng_10x_nuclei_GABAergic.txt" "zeng_smart_cells_GABAergic.txt" "zeng_smart_nuclei_GABAergic.txt"
+"Vip" 6 0.598292305575487 1054.28570497617 0.268893338041101 2416.33349107294 0.44937580315459 6 1 1 1 1 1 1
+"Sst" 6 0.617458901715559 420.963403783374 0.311069991625725 1212.12150063082 0.438987449053007 6 1 1 1 1 1 1

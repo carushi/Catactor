@@ -1,0 +1,5 @@
+# Marker list generated on 2019-08-01. Ordered by recurrence among DE genes (FC > 4, detection_rate > 0.05). Based on: macosko_10x_Glutamatergic.txt, regev_10x_Glutamatergic.txt, zeng_10x_cells_Glutamatergic.txt, zeng_10x_nuclei_Glutamatergic.txt, zeng_smart_cells_Glutamatergic.txt, zeng_smart_nuclei_Glutamatergic.txt.
+"gene" "recurrence" "average_auroc" "average_fold_change" "average_detection" "average_expression" "average_precision" "maximal_reccurrence" "macosko_10x_Glutamatergic.txt" "regev_10x_Glutamatergic.txt" "zeng_10x_cells_Glutamatergic.txt" "zeng_10x_nuclei_Glutamatergic.txt" "zeng_smart_cells_Glutamatergic.txt" "zeng_smart_nuclei_Glutamatergic.txt"
+"Neurod6" 6 0.766748208616484 121.962458851822 0.564086887593785 275.961425599803 0.97017128026967 6 1 1 1 1 1 1
+"Dkkl1" 6 0.618935984498273 28.7209532355533 0.249506963096176 51.3909012548988 0.979767870879626 6 1 1 1 1 1 1
+"Sv2b" 6 0.870931193994418 27.4679002831034 0.792215917917529 375.026162458745 0.962151045646181 6 1 1 1 1 1 1

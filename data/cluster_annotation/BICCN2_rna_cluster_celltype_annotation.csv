@@ -1,0 +1,50 @@
+cluster,celltype,name,size
+1,EX,Lamp5 Egln3_1,15
+2,EX,Lamp5 Egln3_2,87
+3,EX,Lamp5 Pdlim5,65
+4,EX,Lamp5 Slc35d3,250
+5,EX,Lamp5 Lhx6,28
+6,EX,Vip Serpinf1,37
+7,EX,Sncg,63
+8,EX,Vip Rspo4,101
+9,EX,Vip Cbln4,65
+10,EX,Vip Htr1f,29
+11,EX,Vip Crispld2,98
+12,EX,Sst Chodl,26
+13,EX,Sst Myh8,57
+14,EX,Sst Etv1_1,149
+15,EX,Sst Etv1_2,53
+16,EX,Sst C1ql3,74
+17,EX,Sst Crhr2,76
+18,EX,Sst Pvalb Th,25
+19,EX,Pvalb Sst Th,16
+20,EX,Pvalb Reln,181
+21,EX,Pvalb Gpr149,59
+22,EX,Pvalb Il1rapl2,163
+23,EX,Pvalb Vipr2,27
+24,IN,L2/3 IT,708
+25,IN,L5 IT Rspo1_1,441
+26,IN,L5 IT Rspo1_2,172
+27,IN,L5 IT S100b_1,135
+28,IN,L5 IT S100b_2,407
+29,IN,L6 IT Sulf_1,199
+30,IN,L6 IT Sulf_2,219
+31,IN,L6 IT Fos,23
+32,IN,L5 ET_1,86
+33,IN,L5 ET_2,14
+34,IN,L5 ET_3,95
+35,IN,L5 NP Slc17a8,104
+36,IN,L6 NP Trh,108
+37,IN,L6 CT,1288
+38,IN,L6b Ror1,68
+39,IN,L6b Kcnip1,5
+40,IN,L6b Shisa6,95
+41,NN,Astro Aqp4,93
+42,NN,OPC Pdgfra,7
+43,NN,Oligo Opalin Serpinb1a,92
+44,NN,Oligo Opalin Cntn1,7
+45,NN,Micro Siglech,55
+46,NN,Endo Slc38a5,6
+47,NA,L5 IT low,26
+48,NA,L6 IT Sulf_3,67
+49,NA,Glia Ex,14
