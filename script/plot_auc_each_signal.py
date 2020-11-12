@@ -25,11 +25,12 @@ ALL_SAMPLES = ["BICCN2", "GSE111586", "GSE127257", "GSE123576", "GSE126074", "GS
 ALL_SAMPLES_SHORT = ['BICCN2', 'GSE111', 'GSE127', 'GSE123', 'GSE126', 'GSE130']
 RNA_SAMPLES = ["GSE126074", "GSE1303990"]
 MARKER_FILE = "/home/rkawaguc/ipython/BICCN/script/Catactor/analysis/191219_meta/rank_analysis/190214_all_data_three_types/marker_name_list.csv"
-PEAK = False
+PEAK = True
 PEAK_PVALUE = False
 CELLTYPES = ['IN', 'EX', 'NN']
 CELLTYPE_PALETTE = ['green', 'orange', 'steelblue', 'gray']
-WIDTH = 100000
+# WIDTH = 100000
+WIDTH = 5000
 
 
 data_palette = sns.color_palette('Greys', len(ALL_SAMPLES))
@@ -242,6 +243,7 @@ def read_single_result(fname, columns, keep_nan=True):
         new_gene = pd.Series(obtain_global_index_step(df.loc[:,'gene']))
         df.loc[:, 'gene'] =  new_gene
         print('after_conversion')
+        print(df.loc[df.loc[:,'gene'].duplicated(),:])
         assert df.loc[df.loc[:,'gene'].duplicated(),:].shape[0] == 0
     print(df.head())
     return df
@@ -550,8 +552,9 @@ def evaluate_significance_auc(cluster=False, peak=False, method='raw_auc'):
                     df = integrate_dataset(observed_genes, [key for key in aucs if cell in key], aucs)
                     keys = [x.replace('_', '_celltype_') for x in aucs.keys() if cell in x]
                     plot_rug_marker_genes(df, marker_gene, keys, target+'_'+cell, cell)
-                    df = integrate_dataset(observed_genes, [key for key in aucs if cell in key and 'BICCN' in key], aucs)
-                    plot_marker_auc_violin(df, marker_gene, target+'_'+cell, cell)
+                    for gse in ['BICCN', 'GSE111']:
+                        df = integrate_dataset(observed_genes, [key for key in aucs if cell in key and gse in key], aucs)
+                        plot_marker_auc_violin(df, marker_gene, target+'_'+cell+'_'+gse, cell)
 
 def plot_marker_auc_violin(df, marker_gene, header, cell):
     global AMARKER, PALETTE, CELLTYPES, CELLTYPE_PALETTE
@@ -569,7 +572,7 @@ def plot_marker_auc_violin(df, marker_gene, header, cell):
     ax = sns.swarmplot(x="marker", y="auc", data=adf, palette=col_dict)
     # ax.savefig(header+"_BICCN_violin.pdf")
     plt.show()
-    plt.savefig(header+'_BICCN'+'_violin.pdf')
+    plt.savefig(header+'_violin.pdf')
     plt.close()
     plt.clf()
     
@@ -655,6 +658,10 @@ def compute_null_corr(df, marker_gene, auc_keys, header, label='auc', peak=False
     data = temp.pivot(index='gene', columns='dataset', values=label)
     fig = sns.pairplot(data, plot_kws=dict(linewidth=0, alpha=(0.1 if label == 'auc' else 1), color='black'), diag_kws=dict(color='black', bins=30)).fig
     fig.savefig('pair_plot_'+header+('' if not peak else '_'+str(WIDTH))+'.png')
+    plt.close()
+    plt.clf()
+    sns.pairplot(data, kind='kde', plot_kws=dict(shade = True, cmap = "PuBu"), diag_kws=dict(color='grey', bins=30)).fig
+    fig.savefig('pair_plot_'+header+('' if not peak else '_'+str(WIDTH))+'_kde.png')
     plt.close()
     plt.clf()
     for gse_a, gse_b in itertools.combinations(auc_keys, 2):
@@ -1040,7 +1047,7 @@ def obtain_jaccard_mat(rank_gene, marker_gene, celltypes, cluster, cluster_dict,
 
 
 if __name__ == "__main__":
-    cluster = True
+    cluster = False
     # each gene-based AUROC
     # summarize_auc_gene(cluster, PEAK, False)
     # plot_gene_auc(cluster, ('_peak' if PEAK else ''))# plot correlation
