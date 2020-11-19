@@ -5,11 +5,19 @@ Pipeline for meta scATAC-seq analyses
 * Python (>= 3.6)
 * Seurat v3 (Optional)
 * BBKNN (Optional)
+* LassoVariants (Optional)
 
 ## Tutorial
-Under construction
-### Data download
+Preparing...
+
+```
+pip install catactor
+```
+
 ### Data prepocessing (Scanpy object)
+* data_preprocess.R
+* data_preprocess.py
+
 ### Cell-type prediction by signal aggregation
 ### Training and test for cell-type prediction
 
@@ -25,7 +33,7 @@ Kawaguchi, RK., et al. (submitted)
 chromatin accessibility. Nature Biotechnology 37(8):916-924 2019.
 * Chen, S., et al. High-throughput sequencing of the transcriptome and chromatin accessibility
 in the same cell. Nature biotechnology, 37(12):1452-1457 2019.
-* Spektor, R., et al. Single cell atac-seq identies broad changes in neuronal abundance and chromatin accessibility in down syndrome. bioRxiv, 2019.
+* Spektor, R., et al. Single cell atac-seq identifies broad changes in neuronal abundance and chromatin accessibility in down syndrome. bioRxiv, 2019.
 * Zhu, C., et al. An ultra high-throughput method for single-cell joint analysis of open chromatin and transcriptome. Nature Structural and Molecular Biology, 2019.
 
 ### Marker set
@@ -47,3 +55,4 @@ in the same cell. Nature biotechnology, 37(12):1452-1457 2019.
 * Wolf, FA, et al. Scanpy: large-scale single-cell gene expression data analysis. Genome biology, 19(1):15 2018.
 * Polanski, K., et al. BBKNN: fast batch alignment of single cell transcriptomes. Bioinformatics, 36(3):964-965 2019.
 * Butle, A., et al. Integrating single-cell transcriptomic data across different conditions, technologies, and species. Nature biotechnology, 36(5):411-420 2018.
+* Hara, S., Maehara, T.: Finding alternate features in lasso. arXiv preprint, arXiv:1611.05940 2016.

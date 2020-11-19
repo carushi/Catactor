@@ -33,7 +33,6 @@ sc.logging.print_versions()
 #         print(data_b.obs.loc[:,'cluster'].unique())
 #     if 'Ident' in data_b.obs.columns:
 #         print(data_b.obs.loc[:,'Ident'].unique())
-
 #     return data_a, data_b
 
 def normalize_data(bdata):
@@ -42,7 +41,7 @@ def normalize_data(bdata):
     filter_result = sc.pp.filter_genes_dispersion(
         bdata.X, min_mean=0.0125, max_mean=2.5, min_disp=0.7)
     sc.pl.filter_genes_dispersion(filter_result)
-    print([sum([i[0] for i in filter_result]),len(filter_result)])
+    # print([sum([i[0] for i in filter_result]),len(filter_result)])
     bdata = bdata[:, filter_result.gene_subset]
     sc.pp.log1p(bdata)
     sc.pp.scale(bdata, max_value=10)
@@ -50,23 +49,18 @@ def normalize_data(bdata):
 
 
 def nn_computation(adata, gene, out):
-    print('nn computation')
+    # print('nn computation')
     bdata = adata[:,gene]
-    # print(bdata.uns)
     if 'neighbors' in bdata.uns:
         bdata.uns['neighbors'] = {}
     if 'pca' in bdata.uns:
         bdata.uns['pca'] = {}
     num_pcs = min(bdata.shape[1], 20)
-    # print(num_pcs)
     sc.tl.pca(bdata)
     bdata.obsm['X_pca'] *= -1  # multiply by -1 to match Seurat
-    # print(bdata.obsm['X_pca'])
     sc.pl.pca_variance_ratio(bdata, log=True)
-    print(bdata.uns)
-    # print(bdata.uns["neighbors"])
     sc.pp.neighbors(bdata, n_pcs=num_pcs, n_neighbors=20)
-    print(bdata.uns["neighbors"])
+    # print(bdata.uns["neighbors"])
     sc.tl.umap(bdata)
     sc.tl.louvain(bdata)
     sc.pl.umap(bdata, color=['louvain','celltype', 'batch'], save=out+'_umap.png')
@@ -98,8 +92,8 @@ def apply_integration_bbknn(adata, out='output_', save=False):
                         adata_bbknn = pickle.load(f)
                 else:
                     if tdata is None:
-                        print(header)
-                        print(tdata)
+                        # print(header)
+                        # print(tdata)
                         tdata, num_pcs = nn_computation(adata, genes, out+'_'+gene_set)
                     adata_bbknn = bbknn.bbknn(tdata, neighbors_within_batch=k, n_pcs=num_pcs, trim=(50 if trim else 0), copy=True)
                     sc.tl.umap(adata_bbknn)
@@ -128,7 +122,6 @@ def compute_auc(type, prediction, answer, out=''):
     pred_conv = prediction.copy()
     pred_conv.columns = [cdict[x] for x in pred_conv.columns]
     pred_conv = pred_conv.iloc[:,[i for i in range(pred_conv.shape[1]) if pred_conv.columns[i] != 'NA']]
-    print(pred_conv)
     aucs = []
     fptpr = {}
     for cell in celltype:
@@ -136,7 +129,6 @@ def compute_auc(type, prediction, answer, out=''):
         pred = pred.fillna(0)
         pred /= pred_conv.sum(axis=1)
         pred = pred.fillna(0)
-        print(pred)
         ans = [1 if cdict[x] == cell else 0 for x in answer]
         fpr, tpr, threshold = roc_curve(ans, pred)
         fptpr[cell] = (fpr, tpr)
@@ -151,12 +143,6 @@ def evaluate_bbknn(data, output, k=5, cores=5):
     train, test = '1', '0'
     train_index = np.where(data.obs.loc[:,'batch'] == train)[0]
     test_index = np.where(data.obs.loc[:,'batch'] == test)[0]
-    print(X.shape)
-    print(test_index.shape)
-    print(train_index.shape)
-    print([np.where(X[i,:] > 0)[0].shape[0] for i in range(X.shape[0])])
-    # print(max(np.array([np.where(X[i,:] > 0.00001)[0].shape[0] for i in range(X.shape[0])])))
-    # print(max((X > 0).sum(axis=0)))
     assert X.shape[0] == X.shape[1] and X.shape[0] == train_index.shape[0]+test_index.shape[0]
     X = X[test_index,:][:,train_index]
     # print(X.sum(axis=0) <= k)
@@ -175,7 +161,10 @@ def evaluate_bbknn(data, output, k=5, cores=5):
     auc_result.append(compute_auc('neuron', results, y_answer, output+'_neuron'))
     auc_result.append(compute_auc('inex', results, y_answer, output+'_inex'))
     auc_result.append(compute_auc('celltype', results, y_answer, output+'_celltype'))
-    print(output, auc_result)
+    # print(output, auc_result)
+    for i, auc_list in enumerate(auc_result):
+        for celltype in auc_list:
+            print(output+' '+['neuron', 'inex', 'celltype'][i]+' '+celltype+' '+str(auc_list[celltype]))
     sys.stdout.flush()
     return auc_result
 
@@ -184,12 +173,12 @@ def apply_integration(method, num=-1, train=''):
     for i, (a, b, afile, bfile) in enumerate(combination_reference_and_test('gene', 'atac', 'atac', train)):
         if num > 0 and i != num:
             continue
-        print(a, b)
+        if 'GSE111' not in afile:
+            continue
         data_a, data_b = load_data(afile, bfile)
-        # data_b = normalize_data(data_b)
         header ='bbknn_'+a+'_'+b+'_atac_atac'
         adata = merge_data(data_a, data_b, out=header)
-        apply_integration_bbknn(adata, out=header, save=True)
+        apply_integration_bbknn(adata, out=header, save=False)
         # for k in [5, 10, 20, 30]:
         #     with open(header+'_'+str(k)+'.pyn', 'rb') as f:
         #         data = pickle.load(f)
@@ -200,21 +189,20 @@ def apply_rna_integration(method, num=-1, train=''):
         if num > 0 and i != num:
             continue
         data_a, data_b = load_data(afile, bfile)
-    #     data_a = normalize_data(data_a)
         data_b = normalize_data(data_b)
         header ='bbknn_'+a+'_'+b+'_atac_rna'
         adata = merge_data(data_a, data_b, out=header)
-        apply_integration_bbknn(adata, out=header, save=True)
+        apply_integration_bbknn(adata, out=header, save=False)
 
 if __name__ == "__main__":
     method = ['bbknn', 'seurat', 'harmony'][0]
     rna_flag, num = False, -1
-    if len(sys.argv) > 2 and sys.argv[2] == 'rna':
+    if len(sys.argv) > 1 and sys.argv[1] == 'rna':
         rna_flag = True
-    if len(sys.argv) > 3:
-        num = int(sys.argv[3])
+    if len(sys.argv) > 2:
+        num = int(sys.argv[2])
     if rna_flag:
-        apply_rna_integration(method, num, ('' if len(sys.argv) == 1 else sys.argv[1]))
+        apply_rna_integration(method, num, ('' if len(sys.argv) < 4 else sys.argv[3]))
     else:
-        apply_integration(method, num, ('' if len(sys.argv) == 1 else sys.argv[1]))
+        apply_integration(method, num, ('' if len(sys.argv) < 4 else sys.argv[3]))
 
