@@ -1,25 +1,30 @@
 # Catactor: Concensus scATAC-seq analysis tool organizer
-Pipeline for meta scATAC-seq analyses
+<img src="https://dl.dropboxusercontent.com/s/mgv0mmx0p0rctvm/logo_catactor.png?dl=0" width="300">
+
+A general pipeline for meta scATAC-seq analyses.
+
 ## Requirement
 * Scanpy
 * Python (>= 3.6)
 * Seurat v3 (Optional)
 * BBKNN (Optional)
-* LassoVariants (Optional)
+* LassoVariants (Optional, included)
+
+## Download
+
+```
+git clone https://github.com/carushi/Catactor
+```
+
+Currently preparing for pip install.
+```
+pip install Catactor (not yet available)
+```
 
 ## Tutorial
-Preparing...
+See example/tutorial.ipynb.
 
-```
-pip install catactor
-```
-
-### Data prepocessing (Scanpy object)
-* data_preprocess.R
-* data_preprocess.py
-
-### Cell-type prediction by signal aggregation
-### Training and test for cell-type prediction
+## Workflow
 
 
 

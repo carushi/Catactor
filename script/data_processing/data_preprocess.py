@@ -7,10 +7,14 @@ from shutil import copyfile
 import re
 import os
 
+script_dir = os.getcwd()
+metadata_dir = os.path.join(script_dir, "../../data/metadata/")
+current_directory = sys.argv[2]
+os.chdir(current_directory)
 
 if sys.argv[1] == 'GSE111586':
     global_start = 0
-    metadata = pd.read_csv("/data/rkawaguc/data/190813_meta_scATAC/GSE111586/metadata/cell_metadata.txt", sep="\t")
+    metadata = pd.read_csv(os.path.join(metadata_dir, '/GSE111586/cell_metadata.txt'), sep="\t")
     for i, batch in enumerate(["GSM3034633_PreFrontalCortex_62216", "GSM3034637_WholeBrainA_62216", "GSM3034638_WholeBrainA_62816"]):
         bname = ['Prefrontal', 'Wholebrain1', 'Wholebrain2'][i]
         df = pd.read_csv(batch+".5kbwindowmatrix.txt", sep="\t", index_col=0)
@@ -34,7 +38,8 @@ if sys.argv[1] == 'GSE111586':
         column_ann['cov'] = np.squeeze(np.array(bin_cov))
         barcodes['cov'] = [cell_cov[int(x)] if not np.isnan(x) else 0 for x in barcodes['local_index']]
         print(barcodes.shape)
-        barcodes = barcodes.merge(metadata, left_on="barcodes", right_on="cell", how="left")
+        if metadata != '':
+            barcodes = barcodes.merge(metadata, left_on="barcodes", right_on="cell", how="left")
         print(barcodes.shape)
         barcodes['Ident'] = barcodes.loc[:,'cell_label'].values
         column_ann.to_csv('GSE111586_bin_ng_'+bname+'.csv')
@@ -48,10 +53,12 @@ if sys.argv[1] == 'GSE111586':
         del sdf; del non_zeros; del df;
 
 if sys.argv[1] == 'GSE100033':
+    batch_data = ["GSM2668117_e11.5.nchrM.merge.sel_cell", "GSM2668118_e12.5.nchrM.merge.sel_cell", 
+    "GSM2668119_e13.5.nchrM.merge.sel_cell", "GSM2668120_e14.5.nchrM.merge.sel_cell", 
+    "GSM2668121_e15.5.nchrM.merge.sel_cell", "GSM2668122_e16.5.nchrM.merge.sel_cell", 
+    "GSM2668123_p0.nchrM.merge.sel_cell", "GSM2668124_p56.nchrM.merge.sel_cell"]
     global_start = 0
-    for i, batch in enumerate(["GSM2668117_e11.5.nchrM.merge.sel_cell", "GSM2668118_e12.5.nchrM.merge.sel_cell","GSM2668119_e13.5.nchrM.merge.sel_cell", "GSM2668120_e14.5.nchrM.merge.sel_cell", "GSM2668121_e15.5.nchrM.merge.sel_cell", "GSM2668122_e16.5.nchrM.merge.sel_cell", 
-    "GSM2668123_p0.nchrM.merge.sel_cell", "GSM2668124_p56.nchrM.merge.sel_cell"]):
-        #if i < 2: continue
+    for i, batch in enumerate(batch_data):
         bname = batch.split('_')[1].split('n')[0].rstrip('.')
         print(bname)
         df = pd.read_csv(batch+'.mat', sep='\t', header=None, index_col=None)
@@ -113,6 +120,7 @@ if sys.argv[1] == 'GSE126074':
         return rna_barcodes.merge(chromatin_barcodes.loc[:,['barcodes', 'local_index', 'global_index']], how='left', on='barcodes', suffixes=('', '_chrom'))
 
     for i, batch in enumerate(["AdBrainCortex", "P0_BrainCortex"]):
+        # DNA data
         column_ann = pd.read_csv("GSE126074_"+batch+"_SNAREseq_chromatin.peaks.tsv", sep="\t", header=None)
         column_ann = pd.DataFrame([re.split(r":|-", x[0]) for x in column_ann.values], columns=['chr', 'start', 'end'])
         barcodes = pd.read_csv("GSE126074_"+batch+"_SNAREseq_chromatin.barcodes.tsv", header=None)
@@ -140,6 +148,7 @@ if sys.argv[1] == 'GSE126074':
         column_ann = pd.DataFrame(column_ann.values, columns=['Name'])
         barcodes = pd.read_csv("GSE126074_"+batch+"_SNAREseq_cDNA.barcodes.tsv", header=None)
         barcodes.columns = ['barcodes']
+        # RNA data
         bname = {'AdBrainCortex':'AdCortex', 'P0_BrainCortex':'P0Cortex'}[batch]+'r'
         # Nothing to be done for counts
         copyfile("GSE126074_"+batch+"_SNAREseq_cDNA.counts.mtx", "GSE126074_sparse_mat_"+bname+".mtx")
@@ -186,8 +195,6 @@ if sys.argv[1] == 'GSE127257':
         name_list = list(set(column_ann['Name']))
         name_list.remove(np.nan)
         column_ann['id_gene_order'] = [name_list.index(x) if x == x else '' for x in column_ann['Name']]
-        print(column_ann.head())
-        print(column_ann.shape)
         column_ann.drop_duplicates(subset=['global_index'], keep='first', inplace=True)
         column_ann = column_ann[~column_ann['global_index'].isna()]
         column_ann = column_ann.set_index('global_index')
@@ -208,12 +215,11 @@ if sys.argv[1] == 'GSE127257':
         sdf = sdf.transpose()
         column_ann.to_csv('GSE127257_bin_ng_'+bname+'.csv')
         barcodes.to_csv('GSE127257_cell_ng_'+bname+'.csv')
-        #scipy.io.mmwrite("GSE127257_sparse_mat_"+bname+".mtx", sdf)
-
-
+        scipy.io.mmwrite("GSE127257_sparse_mat_"+bname+".mtx", sdf)
 
 if sys.argv[1] == 'GSE130399':
     for i, batch in enumerate(["Adult_CTX", "Fetal_FB"]):
+        # DNA data
         metadata = pd.read_csv(os.path.join(batch, batch+"_embed.csv"), header=0, index_col=None)
         bname = ['Actx', 'Fb'][i]
         sdf = scipy.io.mmread(batch+'/'+batch+'_DNA/'+'matrix.mtx').astype(int)
@@ -236,7 +242,7 @@ if sys.argv[1] == 'GSE130399':
         column_ann.to_csv('GSE130399'+str(i)+'_bin_ng_'+bname+'.csv')
         barcodes.to_csv('GSE130399'+str(i)+'_cell_ng_'+bname+'.csv')
         scipy.io.mmwrite('GSE130399'+str(i)+'_sparse_mat_'+bname+".mtx", sdf)
-
+        # RNA data
         bname = ['Actx', 'Fb'][i]+'r'
         column_ann = pd.read_csv(batch+'/'+batch+'_RNA/'+'genes.tsv', sep="\t", header=None, index_col=None)
         column_ann = pd.DataFrame(column_ann.values, columns=['id', 'Name'])
@@ -257,8 +263,9 @@ if sys.argv[1] == 'GSE130399':
         barcodes.to_csv('GSE130399'+str(i)+'_cell_ng_'+bname+'.csv')
         scipy.io.mmwrite('GSE130399'+str(i)+'_sparse_mat_'+bname+".mtx", sdf)
 
-if sys.argv[1] == 'BICCN2':
+if sys.argv[1] == 'BICCN':
     for i, batch in enumerate(["snSS"]):
+        # SMART-seq data
         bname = batch
         barcode = pd.read_csv("sample_metadata.csv")
         barcode.columns = ['barcode' if c == 'Unnamed: 0' else c for c in barcode.columns]
@@ -277,7 +284,6 @@ if sys.argv[1] == 'BICCN2':
         print(cluster_ann.head())
         print(barcode.head())
         print(barcode.shape)
-        # print(barcodes.shape)
         print(metadata.shape)
         barcodes = barcode.merge(metadata, how='left', on='barcode')
         count = pd.read_csv('exon.counts.csv', index_col=0).transpose()
@@ -286,61 +292,15 @@ if sys.argv[1] == 'BICCN2':
         column_ann = pd.DataFrame({'Name':count.columns})
         column_ann = column_ann.assign(global_index=np.array(list(range(column_ann.shape[0]))))
         column_ann = column_ann.assign(global_index_1000=np.array(list(range(column_ann.shape[0]))))
-                # column_ann = column_ann.assign(local_index=np.array(list(range(column_ann.shape[0]))))
         column_ann = column_ann.assign(id_order_gene=np.array(list(range(column_ann.shape[0]))))
         print(column_ann.shape)
         barcodes = barcodes.assign(global_index=np.array(list(range(barcodes.shape[0]))))
         barcodes = barcodes.assign(local_index=np.array(list(range(barcodes.shape[0]))))
-        # barcodes = barcodes.assign(Ident=barcodes.cl_label)
-        print(cell_cov.shape)
-        print(bin_cov.shape)
-        print(barcodes.shape)
-        print(column_ann.shape)
-        print(count)
-        print(barcodes)
         column_ann['cov'] = np.squeeze(np.array(bin_cov))
         barcodes['cov'] = np.squeeze(np.array(cell_cov))
-        # barcode = barcode.assign(local_index=np.array(list(range(barcode.shape[0]))))
-        # column_ann = column_ann.assign(id_gene_order=np.array(list(range(column_ann.shape[0]))))
-        # print(count)
         sdf = sparse.csr_matrix(count.values)
-        # print(sdf)
         print(sum(np.array([(1 if a==b else 0) for a, b in zip(count.index, barcodes.loc[:, 'barcode'])])))
         assert (all([(a==b) for a, b in zip(count.index, barcodes.loc[:, 'barcode'])]))
-        # assert True
-        # assert (not all([(a==b) for a, b in zip(count.index, barcodes.loc[:, 'barcode'])]))
-        # bin_cov = np.squeeze(np.array(sdf.sum(axis=0)))
-        # cell_cov = sdf.sum(axis=1)
-        # column_ann['cov'] = np.squeeze(np.array(bin_cov))
-        # print(sdf.shape)
-        # print(column_ann.head())
-        # barcodes = pd.read_csv(batch+'/'+batch+'_DNA/'+'barcodes.tsv', sep='\t', header=None, index_col=None)
-        # barcodes.columns = ['barcodes']
-        # barcodes['batch'] = bname
-        # barcodes['cov'] = np.squeeze(np.array(cell_cov))
-        # barcodes['local_index'] = np.array(list(range(barcodes.shape[0])))
-        # barcodes['global_index'] = barcodes['local_index']
-
-        # column_ann.to_csv('GSE130399'+str(i)+'_bin_ng_'+bname+'.csv')
-        # barcodes.to_csv('GSE130399'+str(i)+'_cell_ng_'+bname+'.csv')
-        # scipy.io.mmwrite('GSE130399'+str(i)+'_sparse_mat_'+bname+".mtx", sdf)
-
-        # bname = ['Actx', 'Fb'][i]+'r'
-        # column_ann = pd.read_csv(batch+'/'+batch+'_RNA/'+'genes.tsv', sep="\t", header=None, index_col=None)
-        # column_ann = pd.DataFrame(column_ann.values, columns=['id', 'Name'])
-        # barcodes = pd.read_csv(batch+'/'+batch+'_RNA/'+'barcodes.tsv', header=None)
-        # barcodes.columns = ['barcodes']
-        # sdf = scipy.io.mmread(batch+'/'+batch+'_RNA/'+'matrix.mtx').astype(int)
-        # sdf = sdf.transpose()
-        # bin_cov = np.squeeze(np.array(sdf.sum(axis=0)))
-        # cell_cov = np.squeeze(np.array(sdf.sum(axis=1)))
-        # print(sdf.shape, barcodes.shape, column_ann.shape, cell_cov.shape, bin_cov.shape)
-        # column_ann['cov'] = np.squeeze(np.array(bin_cov))
-        # barcodes['cov'] = np.squeeze(np.array(cell_cov))
-        # barcodes['local_index'] = np.array(list(range(barcodes.shape[0])))
-        # barcodes['global_index'] = np.array(list(range(barcodes.shape[0])))
-        # barcodes['batch'] = bname
-        # column_ann['global_index'] = np.array(list(range(column_ann.shape[0])))
         column_ann.to_csv('BICCN2_bin_ng_'+bname+'.csv')
         barcodes.to_csv('BICCN2_cell_ng_'+bname+'.csv')
         scipy.io.mmwrite('BICCN2_sparse_mat_'+bname+".mtx", sdf)
