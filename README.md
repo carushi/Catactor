@@ -1,4 +1,4 @@
-# Catactor: Concensus scATAC-seq analysis tool organizer
+# Catactor: Consensus scATAC-seq analysis tool organizer
 <img src="https://dl.dropboxusercontent.com/s/mgv0mmx0p0rctvm/logo_catactor.png?dl=0" width="300">
 
 A general pipeline for meta scATAC-seq analyses.
