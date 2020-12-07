@@ -10,6 +10,7 @@ import os
 script_dir = os.getcwd()
 metadata_dir = os.path.join(script_dir, "../../data/metadata/")
 current_directory = sys.argv[2]
+output_directory = os.path.join(os.getcwd(), sys.argv[3])
 os.chdir(current_directory)
 
 if sys.argv[1] == 'GSE111586':
@@ -42,10 +43,10 @@ if sys.argv[1] == 'GSE111586':
             barcodes = barcodes.merge(metadata, left_on="barcodes", right_on="cell", how="left")
         print(barcodes.shape)
         barcodes['Ident'] = barcodes.loc[:,'cell_label'].values
-        column_ann.to_csv('GSE111586_bin_ng_'+bname+'.csv')
-        barcodes.to_csv('GSE111586_cell_ng_'+bname+'.csv')
+        column_ann.to_csv(os.path.join(output_directory, 'GSE111586_bin_ng_'+bname+'.csv'))
+        barcodes.to_csv(os.path.join(output_directory, 'GSE111586_cell_ng_'+bname+'.csv'))
         non_zeros = [(j+1, k+1, sdf[k,j]) for k, j in zip(*sdf.nonzero())]
-        with open('GSE111586_sparse_mat_'+bname+'.mtx', 'w') as f:
+        with open(os.path.join(output_directory, 'GSE111586_sparse_mat_'+bname+'.mtx'), 'w') as f:
             f.write('%%MatrixMarket matrix coordinate integer general\n')
             f.write(str(df.shape[1])+' '+str(df.shape[0])+' '+str(len(non_zeros))+'\n')
             for line in non_zeros:
@@ -82,10 +83,10 @@ if sys.argv[1] == 'GSE100033':
         barcodes['global_index'] = barcodes['local_index']+global_start
         global_start += barcodes.shape[0]
         print(barcodes.head())
-        column_ann.to_csv('GSE100033_bin_ng_'+bname+'.csv')
-        barcodes.to_csv('GSE100033_cell_ng_'+bname+'.csv')
+        column_ann.to_csv(os.path.join(output_directory, 'GSE100033_bin_ng_'+bname+'.csv'))
+        barcodes.to_csv(os.path.join(output_directory, 'GSE100033_cell_ng_'+bname+'.csv'))
         non_zeros = [(j+1, k+1, sdf[j, k]) for j,k in zip(*sdf.nonzero())]
-        with open('GSE100033_sparse_mat_'+bname+'.mtx', 'w') as f:
+        with open(os.path.join(output_directory, 'GSE100033_sparse_mat_'+bname+'.mtx'), 'w') as f:
             f.write('%%MatrixMarket matrix coordinate integer general\n')
             f.write(str(df.shape[0])+' '+str(df.shape[1])+' '+str(len(non_zeros))+'\n')
             for line in non_zeros: f.write(' '.join(list(map(str, line)))+'\n')
@@ -111,9 +112,9 @@ if sys.argv[1] == 'GSE123576':
     barcodes.columns = [x if x not in column_dir else column_dir[x] for x in barcodes.columns]
     column_ann['global_index'] = np.array(list(range(column_ann.shape[0])))
     print(barcodes.head())
-    column_ann.to_csv('GSE123576_bin_ng_'+bname+'.csv')
-    barcodes.to_csv('GSE123576_cell_ng_'+bname+'.csv')
-    scipy.io.mmwrite('GSE123576_sparse_mat_'+bname+'.mtx', sdf)
+    column_ann.to_csv(os.path.join(output_directory, 'GSE123576_bin_ng_'+bname+'.csv'))
+    barcodes.to_csv(os.path.join(output_directory, 'GSE123576_cell_ng_'+bname+'.csv'))
+    scipy.io.mmwrite(os.path.join(output_directory, 'GSE123576_sparse_mat_'+bname+'.mtx'), sdf)
 
 if sys.argv[1] == 'GSE126074':
     def find_chromatin_index(chromatin_barcodes, rna_barcodes):
@@ -139,9 +140,9 @@ if sys.argv[1] == 'GSE126074':
         barcodes['global_index'] = np.array(list(range(barcodes.shape[0])))
         barcodes['batch'] = bname
         column_ann['global_index'] = np.array(list(range(column_ann.shape[0])))
-        column_ann.to_csv('GSE126074_bin_ng_'+bname+'.csv')
-        barcodes.to_csv('GSE126074_cell_ng_'+bname+'.csv')
-        scipy.io.mmwrite("GSE126074_sparse_mat_"+bname+".mtx", sdf)
+        column_ann.to_csv(os.path.join(output_directory, 'GSE126074_bin_ng_'+bname+'.csv'))
+        barcodes.to_csv(os.path.join(output_directory, 'GSE126074_cell_ng_'+bname+'.csv'))
+        scipy.io.mmwrite(os.path.join(output_directory, "GSE126074_sparse_mat_"+bname+".mtx"), sdf)
         chromatin_barcodes = barcodes.copy()
 
         column_ann = pd.read_csv("GSE126074_"+batch+"_SNAREseq_cDNA.genes.tsv", sep="\t", header=None)
@@ -164,9 +165,9 @@ if sys.argv[1] == 'GSE126074':
         barcodes = find_chromatin_index(chromatin_barcodes, barcodes)
         barcodes['batch'] = bname
         column_ann['global_index'] = np.array(list(range(column_ann.shape[0])))
-        column_ann.to_csv('GSE126074_bin_ng_'+bname+'.csv')
-        barcodes.to_csv('GSE126074_cell_ng_'+bname+'.csv')
-        scipy.io.mmwrite("GSE126074_sparse_mat_"+bname+".mtx", sdf)
+        column_ann.to_csv(os.path.join(output_directory, 'GSE126074_bin_ng_'+bname+'.csv'))
+        barcodes.to_csv(os.path.join(output_directory, 'GSE126074_cell_ng_'+bname+'.csv'))
+        scipy.io.mmwrite(os.path.join(output_directory, "GSE126074_sparse_mat_"+bname+".mtx", sdf))
 
 
 if sys.argv[1] == 'GSE127257':
@@ -213,9 +214,9 @@ if sys.argv[1] == 'GSE127257':
         global_start += barcodes.shape[0]
         print(barcodes.head())
         sdf = sdf.transpose()
-        column_ann.to_csv('GSE127257_bin_ng_'+bname+'.csv')
-        barcodes.to_csv('GSE127257_cell_ng_'+bname+'.csv')
-        scipy.io.mmwrite("GSE127257_sparse_mat_"+bname+".mtx", sdf)
+        column_ann.to_csv(os.path.join(output_directory, 'GSE127257_bin_ng_'+bname+'.csv'))
+        barcodes.to_csv(os.path.join(output_directory, 'GSE127257_cell_ng_'+bname+'.csv'))
+        scipy.io.mmwrite(os.path.join(output_directory, "GSE127257_sparse_mat_"+bname+".mtx"), sdf)
 
 if sys.argv[1] == 'GSE130399':
     for i, batch in enumerate(["Adult_CTX", "Fetal_FB"]):
@@ -239,9 +240,9 @@ if sys.argv[1] == 'GSE130399':
         barcodes['local_index'] = np.array(list(range(barcodes.shape[0])))
         barcodes['global_index'] = barcodes['local_index']
 
-        column_ann.to_csv('GSE130399'+str(i)+'_bin_ng_'+bname+'.csv')
-        barcodes.to_csv('GSE130399'+str(i)+'_cell_ng_'+bname+'.csv')
-        scipy.io.mmwrite('GSE130399'+str(i)+'_sparse_mat_'+bname+".mtx", sdf)
+        column_ann.to_csv(os.path.join(output_directory, 'GSE130399'+str(i)+'_bin_ng_'+bname+'.csv'))
+        barcodes.to_csv(os.path.join(output_directory, 'GSE130399'+str(i)+'_cell_ng_'+bname+'.csv'))
+        scipy.io.mmwrite(os.path.join(output_directory, 'GSE130399'+str(i)+'_sparse_mat_'+bname+".mtx"), sdf)
         # RNA data
         bname = ['Actx', 'Fb'][i]+'r'
         column_ann = pd.read_csv(batch+'/'+batch+'_RNA/'+'genes.tsv', sep="\t", header=None, index_col=None)
@@ -259,9 +260,9 @@ if sys.argv[1] == 'GSE130399':
         barcodes['global_index'] = np.array(list(range(barcodes.shape[0])))
         barcodes['batch'] = bname
         column_ann['global_index'] = np.array(list(range(column_ann.shape[0])))
-        column_ann.to_csv('GSE130399'+str(i)+'_bin_ng_'+bname+'.csv')
-        barcodes.to_csv('GSE130399'+str(i)+'_cell_ng_'+bname+'.csv')
-        scipy.io.mmwrite('GSE130399'+str(i)+'_sparse_mat_'+bname+".mtx", sdf)
+        column_ann.to_csv(os.path.join(output_directory, 'GSE130399'+str(i)+'_bin_ng_'+bname+'.csv'))
+        barcodes.to_csv(os.path.join(output_directory, 'GSE130399'+str(i)+'_cell_ng_'+bname+'.csv'))
+        scipy.io.mmwrite(os.path.join(output_directory, 'GSE130399'+str(i)+'_sparse_mat_'+bname+".mtx"), sdf)
 
 if sys.argv[1] == 'BICCN':
     for i, batch in enumerate(["snSS"]):
@@ -301,7 +302,7 @@ if sys.argv[1] == 'BICCN':
         sdf = sparse.csr_matrix(count.values)
         print(sum(np.array([(1 if a==b else 0) for a, b in zip(count.index, barcodes.loc[:, 'barcode'])])))
         assert (all([(a==b) for a, b in zip(count.index, barcodes.loc[:, 'barcode'])]))
-        column_ann.to_csv('BICCN2_bin_ng_'+bname+'.csv')
-        barcodes.to_csv('BICCN2_cell_ng_'+bname+'.csv')
-        scipy.io.mmwrite('BICCN2_sparse_mat_'+bname+".mtx", sdf)
+        column_ann.to_csv(os.path.join(output_directory, 'BICCN_bin_ng_'+bname+'.csv'))
+        barcodes.to_csv(os.path.join(output_directory, 'BICCN_cell_ng_'+bname+'.csv'))
+        scipy.io.mmwrite(os.path.join(output_directory, 'BICCN_sparse_mat_'+bname+".mtx"), sdf)
 
