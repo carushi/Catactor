@@ -60,4 +60,4 @@ in the same cell. Nature biotechnology, 37(12):1452-1457 2019.
 * Wolf, FA, et al. Scanpy: large-scale single-cell gene expression data analysis. Genome biology, 19(1):15 2018.
 * Polanski, K., et al. BBKNN: fast batch alignment of single cell transcriptomes. Bioinformatics, 36(3):964-965 2019.
 * Butle, A., et al. Integrating single-cell transcriptomic data across different conditions, technologies, and species. Nature biotechnology, 36(5):411-420 2018.
-* Hara, S., Maehara, T.: Finding alternate features in lasso. arXiv preprint, arXiv:1611.05940 2016.
+* Hara, S., Maehara, T. Finding alternate features in lasso. arXiv preprint, arXiv:1611.05940 2016.

@@ -119,15 +119,10 @@ def comp_regressed_signals(X, X_columns=[]):
 def make_prediction(Y_pred, labels):
     result = pd.Series(['NA']*Y_pred.shape[1])
     assigned = np.array([i for i, x in enumerate(Y_pred.max(axis=0)) if x > 0 or x])
-    # print(Y_pred[:,0:10])
-    # print(assigned)
     if len(assigned) == 0: # No positive prediction
         return result.tolist()
     result[assigned] = [labels[int(ind)] for ind in np.argmax(Y_pred[:,assigned], axis=0)]
     return result.tolist()
-
-# Y_pred = ["EX", "NN", "IN", ...]
-# Y_order = [[0, 1, 0, ...] for "EX", [1, 0, 0, ...] for "IN", and [0, 0, 1, ...] for "NN"]
 
 
 def plot_mean_roc(fptpr, output):
@@ -240,9 +235,6 @@ def train_by_raw_signal(X, y_true, header, sampling, feature_names, verbose=True
             print(cell_types, sum(y))
             mean_auc, mean_acc = evaluate_by_raw_signal_cv(X, y, header+'_'+c, sampling, m, feature_names, verbose, saved)
             all_result.append([c, m, mean_auc, mean_acc, 'sc'])
-        # Y_true = np.array([[True if cl == c else False for cl in y_true] for c in cell_types])
-        # mean_auc, mean_acc = evaluate_by_raw_signal_cv_mc(X, Y_true[i], cell_types, header, sampling, m, feature_names, verbose)
-        # all_result.append([c, m, mean_auc, mean_acc, 'mc'])
     df = pd.DataFrame(all_result, columns=['celltype', 'clf', 'auc', 'acc', 'class'])
     return df
 
@@ -268,13 +260,12 @@ def predict_by_raw_signal_trained(X, train_header, test_header, feature_names, v
             if len(cell_types) == 0:
                 cell_types = clfs.keys()
             for c in cell_types:
-                # y_pred[c] = clfs[c].predict(X)
                 if m == 'la':
                     y_proba[c] = clfs[c].predict_proba_mean_weight(X, max_alternates=5)
                 else:
                     y_proba[c] = clfs[c].predict_proba(X)[:,1]
             y_proba_mat = np.array([y_proba[c] for c in cell_types])
-            if mt:
+            if mt: # evaluate a normalized signal against multiple types
                 y_proba_mat = norm_row_columns(y_proba_mat)
                 Y_pred, y_order = get_max_indices(y_proba_mat)
                 y_pred = make_prediction(Y_pred, [c for c in y_proba])
@@ -329,7 +320,7 @@ def evaluate_by_raw_signal_trained(X, y_true, train_header, test_header, feature
         if clfs is None:
             continue
         y_proba_dic, y_pred_dic = {}, {}
-        try: # sklearn version difference
+        try: # sklearn version should be same to use trained classifiers
             # single task
             for i, c in enumerate(cell_types):
                 roc_file = test_header+'_'+c+('' if len([x for x in cell_types if x == c]) == 1 else str(i))+'_'+m+'_fptpr.npy'
@@ -539,7 +530,6 @@ class CatactorLassoAlt(Catactor):
         new_X, y_true = None, None
         if threshold <= 50 and sample_size < 100:
             sample_size = 100
-        # y_true = pd.DataFrame([cell for i in range(sample_size) for cell in celltypes]
         if threshold == 1:
             sampled_index = [np.random.choice(each_index[cell], sample_size) for cell in celltypes]
             new_X = adata.X[np.array([i for x in sampled_index for i in x]),:]
@@ -559,45 +549,41 @@ class CatactorLassoAlt(Catactor):
         return aggdata
 
     def simulate_agg_exp_prediction(self, adata, marker_list, cluster_list, cluster_annotation, evaluate_flag, evaluate_labels):
-        all_result = None
         marker_groups = set(['_'.join(c.split('_')[0:-1]) for c in marker_list])
-        for simulate in ['down_sample', 'add_noise'][1:2]:
-            if simulate == 'down_sample':
-                threshold = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-            else:
-                threshold = [1, 5, 10, 25, 50, 75, 100, 150, 200]
-                # threshold = [5, 10, 25, 50, 75, 100, 150, 200]
-            sample_times = 10
-            np.random.seed(42)
-            for th in threshold:
-                temp_result = None
-                for cluster in evaluate_labels:
-                    if cluster == 'cluster': continue
-                    for s in range(sample_times):
-                        aggdata = self.sample_averaged_cells(adata, cluster, th)
-                        aggdata = self.compute_each_cell_signals(aggdata, marker_list)
-                        for mode in ['average', 'rankmean']:
-                            names = [mode+'_'+key for key in marker_groups]
-                            for key in sorted(marker_groups):
-                                marker_columns = [m for m in marker_list if m.startswith(key)]
-                                marker_type = key.split('_')[0]
-                                if self.args['verbose']:
-                                    print('-- Predicting', key, marker_columns)
-                                if marker_type == "SM":
-                                    marker_type = '_'.join(key.split('_')[0:-1])
-                                    ori_celltype_labels = [c.split('_')[-1] for c in marker_columns]
-                                else:
-                                    ori_celltype_labels = [c.split('_')[1] for c in marker_columns]
-                                X = aggdata.obs.loc[:, [mode+'_'+x for x in marker_columns]]
-                                X.columns = self.convert_celltype_labels_to_target(cluster, ori_celltype_labels)
-                                # new_X = X.iloc[:,np.array([i for i, x in enumerate(X.columns) if 'NA' not in x])]
-                                assert adata.X.shape[1] >= X.shape[1]
-                                _, temp_result = self.evaluate_exp_prediction_for_X(aggdata, temp_result, marker_type, mode, key, cluster, X, cluster_list, cluster_annotation, evaluate_flag, simulate=True)
-                                all_result = pd.concat((all_result, temp_result))
-                    if evaluate_flag:
-                        print(self.all_header+'_simulate_'+simulate+'_'+str(th)+'_auroc.csv')
-                        all_result.to_csv(self.all_header+'_simulate_'+simulate+'_'+str(th)+('_rank' if mode == 'rankmean' else '')+'_auroc.csv')
-                        # os.exit()
+        simualte = "down_sample"
+        threshold = [1, 5, 10, 25, 50, 75, 100, 150, 200]
+        sample_times = 10
+        all_result = None
+        for th in threshold:
+            temp_result = None
+            for cluster in evaluate_labels:
+                if cluster == 'cluster': continue
+                for s in range(sample_times):
+                    temp_result = None
+                    aggdata = self.sample_averaged_cells(adata, cluster, th)
+                    aggdata = self.compute_each_cell_signals(aggdata, marker_list)
+                    for mode in ['average', 'rankmean']:
+                        names = [mode+'_'+key for key in marker_groups]
+                        for key in sorted(marker_groups):
+                            marker_columns = [m for m in marker_list if m.startswith(key)]
+                            marker_type = key.split('_')[0]
+                            if self.args['verbose']:
+                                print('-- Predicting', key, marker_columns)
+                            if marker_type == "SM":
+                                marker_type = '_'.join(key.split('_')[0:-1])
+                                ori_celltype_labels = [c.split('_')[-1] for c in marker_columns]
+                            else:
+                                ori_celltype_labels = [c.split('_')[1] for c in marker_columns]
+                            X = aggdata.obs.loc[:, [mode+'_'+x for x in marker_columns]]
+                            X.columns = self.convert_celltype_labels_to_target(cluster, ori_celltype_labels)
+                            assert adata.X.shape[1] >= X.shape[1]
+                            _, temp_result = self.evaluate_exp_prediction_for_X(aggdata, temp_result, marker_type, mode, key, cluster, X, cluster_list, cluster_annotation, evaluate_flag, simulate=True)
+            if evaluate_flag:
+                ofname = self.all_header+'_simulate_'+simulate+'_'+str(th)+'_auroc.csv'
+                if self.verbose:
+                    print('Writing to ...', ofname)
+                temp_result.to_csv(ofname)
+            all_result = pd.concat((all_result, temp_result))
 
     def get_feature_file(self, key, train_label):
         return os.path.join(self.args['clf_dir'], self.args['train_out']+'_'+key+'_'+train_label+'_features.csv')
@@ -635,10 +621,6 @@ class CatactorLassoAlt(Catactor):
                 y_true = bdata.obs[cluster_list[train_label]]
             y_original = bdata.obs[cluster_list[train_label]]
         else:
-            # mX, mX_index = average_for_each_cluster(X, bdata.obs[cluster_list[cluster]])
-            # print(cluster_list[cluster])
-            print(cluster_list[cluster])
-            print(bdata.obs.loc[:,cluster_list[cluster]])
             mX, mX_index = average_for_each_cluster_less_memory(X, bdata.obs[cluster_list[cluster]])
             assert mX.shape[0] == len(mX_index)
             print(mX_index)
@@ -758,7 +740,6 @@ class CatactorLassoAlt(Catactor):
     def set_neuron_column(self, cluster_list, all_cells, resolution):
         if 'celltype' not in all_cells.obs.columns:
             return all_cells, cluster_list, resolution
-        # all_cells.obs.loc[:,'celltype'] = convert_to_raw_celltype(all_cells.obs.loc[:,'celltype'], NN=True)
         all_cells.obs['celltype'] = convert_to_raw_celltype(all_cells.obs.loc[:,'celltype'])
         all_cells.obs['neuron'] = convert_to_raw_celltype(all_cells.obs['celltype'])
         all_cells.obs['neuron'] = ['P' if c in ['EX', 'IN'] else 'NA' if c == 'NA' else 'N' for c in all_cells.obs['neuron']]
@@ -787,8 +768,6 @@ class CatactorLassoAlt(Catactor):
                 self.write_modif_adata(all_cells)
                 with open(self.all_cell_modif_path, "wb") as f:
                     pickle.dump(all_cells, f)
-                # self.set_dr_labels(all_cells)
-                # all_cells = self.set_cluster_information(all_cells)
         if self.args['debug']:
             self.test_raw_expression(all_cells)
         return all_cells
@@ -866,75 +845,11 @@ class CatactorItemSet(Catactor):
                 trans = [x for x in trans if x not in inactive_cluster]
                 f.write(' '.join(map(str, trans))+'\n')
 
-    # def obtain_transaction_data_from_one_batch(self, mat, row, column, row_ann, column_ann, header, write_sparse=False, plot_statistics=True):
-    #     conv_mat = self.compute_column_conversion(column_ann, column)
-    #     if self.args['verbose']: print('-- Conversion(column):', mat.shape, 'x', conv_mat.shape)
-    #     mat = mat.dot(conv_mat)
-    #     if plot_statistics:
-    #         plot_statistics(mat)
-    #     if self.args['cell_average']: # averaging
-    #         conv_mat = self.compute_row_conversion(row_ann, row)
-    #         if self.args['verbose']: print('-- Conversion(row):', conv_mat.shape, 'x', mat.shape)
-    #         mat = conv_mat.dot(mat)
-    #         mat = self.binarize_after_conversion_with_thres(mat, row_ann)
-    #         if self.args['transpose']:
-    #             row_ann, column_ann = column_ann, row_ann
-    #             mat = mat.transpose()
-    #         self.write_sparse_matrix(conv_mat, self.args['odir'], header+'_conv.mtx')
-    #         self.write_sparse_matrix(mat, self.args['odir'], header+'.mtx')
-    #         self.convert_to_transaction(mat, self.args['odir'], header+'_ts.txt')
-    #     else: # separating
-    #         for c in set((row_ann[self.args['cell_group']] if self.args['cell_group'] != '' else [''])):
-    #             selected_row = (row_ann.loc[row_ann[self.args['cell_group']] == c] if c != '' else row_ann)
-    #             if self.args['verbose']:
-    #                 print('-- one cell type', c, selected_row.shape)
-    #                 sys.stdout.flush()
-    #             if selected_row.shape[0] < self.args['mthres']: continue
-    #             conv_mat = self.compute_row_conversion_each_cluster(row_ann, row, c)
-    #             if not isinstance(conv_mat, int) and conv_mat.shape[0] == 0:
-    #                 continue
-    #             if self.args['verbose']: print('-- Conversion(row) ', c, ':', (conv_mat.shape if c != '' else "no-compression"), 'x', mat.shape)
-    #             smat = self.binarize_after_conversion(mat, (conv_mat if c != '' else None))
-    #             if self.args['transpose']:
-    #                 smat = smat.transpose()
-    #                 header = header+'_t_'
-    #             if c != '' or write_sparse:
-    #                 if c != '':
-    #                     self.write_sparse_matrix(conv_mat, self.args['odir'], header+'_conv_'+str(c)+'.mtx')
-    #                 else:
-    #                     column_ann.to_csv(os.path.join(self.args['odir'], header+'_filtered_col.csv'))
-    #                     row_ann.to_csv(os.path.join(self.args['odir'], header+'_filtered_row.csv'))
-    #                 self.write_sparse_matrix(smat, self.args['odir'], header+'_sel_'+str(c)+'.mtx')
-    #             self.convert_to_transaction(smat, self.args['odir'], header+('_'+str(c) if c != '' else '')+'_ts.txt')
-
+    
     def check_transaction_number(self, file):
         with open(file) as f:
             lines = len([1 for line in f.readlines() if len(line) > 1])
         return lines
-
-    # def read_transaction_file(self, file):
-    #     return os.path.join(self.args['odir'], self.matrix, file)
-
-    # def obtain_transaction_data(self):
-    #     for i, (file, cell_file, gene_file, ofile) in enumerate(zip(*[self.args['files'], self.args['cell'].split(','), self.args['gene'].split(','), cycle(self.args['output'].split(','))])):
-    #         if self.args['verbose']:
-    #             print('-- Start reading (directory=', self.args['files'])
-    #             print('-- Input and output files...', file, cell_file, gene_file, ofile)
-    #         header = '_'.join([ofile, self.args['gene_group'], self.args['cell_group']])
-    #         mat, row, column, data = self.read_one_matrix(file)
-    #         row_ann, column_ann = self.read_filtered_annotations(cell_file, gene_file, header, self.args['batch_integrate'])
-    #         if self.args['batch_integrate'] and len(self.args['files']) > 1:
-    #             self.add_one_batch_data(mat, row, column, row_ann, column_ann, i)
-    #         else:
-    #             self.obtain_transaction_data_from_one_batch(mat, row, column, row_ann, column_ann, header, plot_statistics=True)
-    #     if self.args['batch_integrate'] and len(self.args['files']) > 1:
-    #         if self.args['verbose']:
-    #             print('-- Merge column annotations')
-    #         self.merge_and_pull_back_index()
-    #         header = '_'.join(['abatch_', self.args['gene_group'], self.args['cell_group']])
-    #         if self.args['verbose']:
-    #             print('-- Write transactions')
-    #         self.obtain_transaction_data_from_one_batch(self.amat, self.row, self.column, self.arow_ann, self.acolumn_ann, header, write_sparse=True, plot_statistics=True)
 
     def before_convergence(self, cluster_list, max_r, min_c, all_cell_num, threshold):
         if cluster_list.shape[0] <= min_c:
@@ -1023,23 +938,17 @@ class CatactorItemSet(Catactor):
         min_c, max_r = self.args['min_c'], self.args['max_r'] 
         with open(self.all_cell_path, "rb") as f:
             all_cells = pickle.load(f)
-        # all_cells = all_cells[:,all_cells.var.iloc[0:50000,:].index]
-        print(self.use_row, all_cells)
         if self.use_row:
             mat = all_cells.X.transpose()
             all_peak_num, all_cell_num = all_cells.shape
         else:
             mat = all_cells.X.copy()
             all_cell_num, all_peak_num = all_cells.shape
-        print(self.all_header+'_cluster.csv')
-        # print(all_cells.var.index.shape, np.squeeze(np.array(mat.sum(axis=0))).shape, all_cells.shape[1])
         temporal_cluster_list = pd.DataFrame({'all_indices': [str(x) for x in range(all_peak_num)], 'cov':np.squeeze(np.array(mat.sum(axis=0))), 'n_index': list(range(0, all_peak_num))})
         threshold = 5
         for iter in range(100):
             if self.args['verbose']:
                 print('Peaks are being merged...', iter, 'times', mat.shape)
-                # print('cell coverage')
-                # print(mat.sum(axis=0))
             if not self.before_convergence(temporal_cluster_list, max_r, min_c, all_cell_num, threshold):
                 break
             mat.data = np.ones(mat.data.shape, dtype=int)
@@ -1063,48 +972,6 @@ class CatactorItemSet(Catactor):
         temporal_cluster_list.to_csv(self.all_header+'_cluster.csv')
         with open(self.all_header+'_mat.pyn', 'wb') as f:
             pickle.dump(mat, f)
-        # print(mat.shape)
-        # print(mat.sum(axis=1).transpose())
-
-    # def run_itemset_based_clustering(self):
-    #     if "*" in self.args['regex']: self.args['regex'] = self.args['regex'].replace('*', '.*?')
-    #     if self.args['verbose']:
-    #         print('LCM: regex', self.args['regex'])
-    #     else:
-    #         print('#!/bin/bash')
-    #     for file in os.listdir(os.path.join(self.args['dir'], self.matrix)):
-    #         if not re.match(self.args['regex'], file):
-    #             continue
-    #         if self.args['verbose']:
-    #             print('-- Matched', file)
-    #         min_c, max_c = self.args['min_c'], self.args['max_c']
-    #         target = ('cell' if '_t_' in file else 'gene') # transposed
-    #         header = file.split('.')[0]
-    #         tfile = self.read_transaction_file(file)
-    #         if self.args['mins_ratio'] is not None:
-    #             transactions = self.check_transaction_number(tfile)
-    #             threshold = max(math.floor(transactions*self.args['mins_ratio']/100.), 1)
-    #             threshold = max(self.args['min_support'], threshold)
-    #             if self.args['verbose']:
-    #                 print('New transaction', threshold, ">", self.args['min_support'])
-    #         else:
-    #             threshold = self.args['min_support']
-    #         command = [os.path.join(self.args['lcm_dir'], 'lcm')]
-    #         commands = []
-    #         if self.args['top'] > 0:
-    #             commands.append(list(map(str, command+['FQ', '-K', self.args['top'], '-l', min_c, '-u', max_c, tfile, ">", "lcm_"+target+"_"+header+"_top_"+str(self.args['top'])+".txt", "2>&1"])))
-    #         else:
-    #             commands.append(list(map(str, command+['FQs',           '-l', min_c, '-u', max_c, tfile, threshold, "lcm_"+target+"_"+header+"_mins_"+str(threshold)+".txt"])))
-    #             commands.append(list(map(str, command+['FQVs', '-f', 1, '-l', min_c, '-u', max_c, tfile, threshold, q"lcm_"+target+"_"+header+"_lift_"+str(threshold)+".txt"])))
-    #         if self.args['silent']:
-    #             for i, com in enumerate(commands):
-    #                 print(' '.join(com)+(' &' if self.args['background'] else ''))
-    #         else:
-    #             for i, com in enumerate(commands):
-    #                 print('time_start_', i, datatime.datetime.now())
-    #                 print(com)
-    #                 subprocess.run(com, shell=True)
-    #             print('time_end_all', datatime.datetime.now())
 
 def run_Catactor(args):
     args = parse_args(args)

@@ -7,17 +7,22 @@ from shutil import copyfile
 import re
 import os
 
-script_dir = os.getcwd()
+script_dir = os.path.dirname(os.path.realpath(__file__))
 metadata_dir = os.path.join(script_dir, "../../data/metadata/")
+ref_gene_dir = os.path.join(script_dir, "../../data/")
 current_directory = sys.argv[2]
 output_directory = os.path.join(os.getcwd(), sys.argv[3])
 os.chdir(current_directory)
 
 if sys.argv[1] == 'GSE111586':
     global_start = 0
-    metadata = pd.read_csv(os.path.join(metadata_dir, '/GSE111586/cell_metadata.txt'), sep="\t")
+    metadata = pd.read_csv(os.path.join(metadata_dir, 'GSE111586', 'cell_metadata.txt'), sep="\t")
+    print(metadata)
+    # exit()
     for i, batch in enumerate(["GSM3034633_PreFrontalCortex_62216", "GSM3034637_WholeBrainA_62216", "GSM3034638_WholeBrainA_62816"]):
         bname = ['Prefrontal', 'Wholebrain1', 'Wholebrain2'][i]
+        barcodes = pd.read_csv(batch+".indextable.txt", sep="\t", header=None)
+        barcodes.columns = ["barcodes", "batch"]
         df = pd.read_csv(batch+".5kbwindowmatrix.txt", sep="\t", index_col=0)
         print(df.shape)
         print(df.head())
@@ -26,8 +31,6 @@ if sys.argv[1] == 'GSE111586':
         column_ann['global_index_5000'] = column_ann.index
         df = df.iloc[:,4:df.shape[1]]
         barcodes_dic = dict([(b, j) for j, b in enumerate(df.columns)])
-        barcodes = pd.read_csv(batch+".indextable.txt", sep="\t", header=None)
-        barcodes.columns = ["barcodes", "batch"]
         barcodes['local_index'] = [barcodes_dic[x] if x in barcodes_dic else np.nan for x in barcodes['barcodes']]
         barcodes['global_index'] = [barcodes_dic[x]+global_start if x in barcodes_dic else np.nan for x in barcodes['barcodes'] ]
         global_start = barcodes['global_index'].astype(float).max()+1
@@ -38,9 +41,7 @@ if sys.argv[1] == 'GSE111586':
         bin_cov = sdf.sum(axis=1)
         column_ann['cov'] = np.squeeze(np.array(bin_cov))
         barcodes['cov'] = [cell_cov[int(x)] if not np.isnan(x) else 0 for x in barcodes['local_index']]
-        print(barcodes.shape)
-        if metadata != '':
-            barcodes = barcodes.merge(metadata, left_on="barcodes", right_on="cell", how="left")
+        barcodes = barcodes.merge(metadata, left_on="barcodes", right_on="cell", how="left")
         print(barcodes.shape)
         barcodes['Ident'] = barcodes.loc[:,'cell_label'].values
         column_ann.to_csv(os.path.join(output_directory, 'GSE111586_bin_ng_'+bname+'.csv'))
@@ -186,7 +187,7 @@ if sys.argv[1] == 'GSE127257':
         barcodes = pd.read_csv(batch+'.barcodes.filtered.820reads.txt', sep='\t', header=None, index_col=None)
         barcodes.columns = ['barcodes']
         assert all([x in barcodes['barcodes'].values for x in cells])
-        gene_conversion = pd.read_csv(sys.argv[2], sep=",", header=0, dtype=str) # gene_ref_id-based conversion
+        gene_conversion = pd.read_csv(os.path.join(ref_gene_dir, 'mm.en.et.csv'), sep=",", header=0, dtype=str) # gene_ref_id-based conversion
         print(column_ann.head())
         print(gene_conversion)
         column_ann['global_index'] = np.array(list(range(column_ann.shape[0])))

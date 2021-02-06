@@ -130,4 +130,5 @@ dmypy.json
 
 
 mat_data/*
-
+raw_data/*
+data/metadata/GSE111586/*

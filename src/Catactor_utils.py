@@ -412,7 +412,8 @@ class Annotation:
         if self.args['verbose']:
             print('-- Binning with different sizes', self.args['min_bin'], self.args['max_bin'], self.args['step_bin'])
         index_list = [x.replace('global_index', '').lstrip('_') for x in column_ann.columns if 'global_index' in x]
-        print(index_list)
+        if len([x for x in index_list if x != '']) > 0:
+            print('Columns already contain :', index_list)
         min_step = min([int(i) if i != '' else 1000 for i in index_list])
         start_index = column_ann.loc[:,"start"]
         peak_flag = False
@@ -420,26 +421,15 @@ class Annotation:
             peak_flag = True
             start_index = (column_ann["end"]+column_ann["start"])/2
         print(start_index)
-        print('construct', peak_flag)
-        print(column_ann)
+        print('-- Construct', peak_flag)
         for step in range(max(min_step, self.args['min_bin']), self.args['max_bin']+self.args['step_bin'], max(min_step, self.args['step_bin'])):
-            print(step)
-            print(column_ann.columns)
+            print(' --- Step:', step)
+            # print(column_ann.columns)
             if 'global_index_'+str(step) in column_ann.columns:
                 column_ann = column_ann.drop(columns='global_index_'+str(step))
             column_ann.loc[:, "chr_index"] = np.floor(start_index/step).astype(int).values
-            # print(start_index)
-            # print((start_index/step).astype(int))
-            # print(column_ann.loc[:, column_ann.columns.str.startswith('global')])
-            # print(column_ann.loc[:, "chr_index"])
-            # print('???')
-            # print(column_ann.loc[:,'chr_index'].values[0:100])
-            # print(np.floor(start_index/step).astype(int).values[0:100])
-            # print(column_ann.loc[:,'chr_index'].values[0:100])
-            # print(start_index.values[0:100])
             candidates = pd.DataFrame({'chr':column_ann.loc[:,"chr"].values, "chr_index":column_ann.loc[:,"chr_index"].values})
             candidates.drop_duplicates(keep='first', inplace=True)
-            # print(candidates)
             candidates.loc[:,'global_index_'+str(step)] = list(range(0, candidates.shape[0]))
             column_ann = column_ann.merge(candidates, how='left', on=["chr", "chr_index"])
             column_ann = column_ann.drop(columns=['chr_index'])
@@ -695,8 +685,9 @@ class Annotation:
     def construct_basic_annotation_columns(self):
         for fname in self.args['files']:
             sep = (',' if '.csv' in fname else '\t')
-            out_header = '.'.join(os.path.basename(fname).split('.')[0:-1])
+            out_header = os.path.join(self.args['dir'], os.path.dirname(fname), '.'.join(os.path.basename(fname).split('.')[0:-1]))
             output = out_header+'_with_bins.csv'
+            print('Output', output, out_header)
             column_ann = pd.read_csv(os.path.join(self.args['dir'], fname), index_col=0, header=(self.args['gheader'] if self.args['gheader'] != '' else 'infer'), sep=sep)
             if all([(column in column_ann.columns) for column in ['chr', 'start', 'end']]):
                 column_ann = self.construct_different_bin_ann(column_ann)
