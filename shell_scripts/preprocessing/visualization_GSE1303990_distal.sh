@@ -1,12 +1,14 @@
-#!/bin/bash
+#!/usr/bin/bash
 set -euxo pipefail
-GSE=GSE111586
+
+GSE=GSE1303990
 sf_marker='GABAergic_markers_fc.txt,Glutamatergic_markers_fc.txt,Non.Neuronal_markers_fc.txt'
 ta_marker='tasic2016_gaba.csv,tasic2016_glu.csv,tasic2016_gli.csv'
 cu_marker='cusanovich2018_inh.txt,cusanovich2018_ext.txt,cusanovich2018_gli.txt'
 tn_marker='tasic2018_gaba.txt,tasic2018_glu.txt,tasic2018_gli.txt'
-OPTIONS=" --na_filtering --cfilter genome_flag --verbose " 
-DR_OPTIONS=" --pca 40 --tsne-params nn=15,perplexity=40,learning_rate=100 " 
+
+OPTIONS=" --na_filtering --norm --cfilter genome_flag --verbose --skip 2 --top-genes 10000 " 
+DR_OPTIONS=" --pca 50 --norm --tsne-params nn=30,perplexity=100,learning_rate=100 "
 if [ -z "$2" ]; then
 	METHOD="preprocess"
 else
@@ -23,14 +25,13 @@ else
         DDIR=$4
 fi
 
-COLUMN_DATA=${GSE}_bin_ng_Wholebrain1_with_bins_annot.csv,${GSE}_bin_ng_Wholebrain2_with_bins_annot.csv,${GSE}_bin_ng_Prefrontal_with_bins_annot.csv
-ROW_DATA=${GSE}_cell_ng_Wholebrain1_meta.csv,${GSE}_cell_ng_Wholebrain2_meta.csv,${GSE}_cell_ng_Prefrontal_meta.csv
-MAT_DATA=${GSE}_sparse_mat_Wholebrain1.mtx,${GSE}_sparse_mat_Wholebrain2.mtx,${GSE}_sparse_mat_Prefrontal.mtx
-CLUSTERS=Ident,cluster_leiden,cluster_louvain,id,cell_label,celltype
+COLUMN_DATA=${GSE}_bin_ng_Actx_with_bins_annot.csv
+ROW_DATA=${GSE}_cell_ng_Actx_meta.csv 
+MAT_DATA=${GSE}_sparse_mat_Actx.mtx
+CLUSTERS=cluster,cluster_leiden,cluster_louvain,Ident,celltype
 REFERENCE=
 
-
-for dist in gene proximal distal
+for dist in gene distal proximal
 do
 	if [ $dist == "distal" ]; then
 		clabel="id_order_distal"
@@ -62,23 +63,25 @@ Catactor --update $OPTIONS $DR_OPTIONS --gene-name '' --clabel global_index_5000
 	--output ${GSE}_${dist} preprocess $MAT_DATA
 break
 elif [ "$METHOD" == "preprocess" ]; then
-Catactor $OPTIONS $DR_OPTIONS --gene-name gene_name --clabel $clabel --cindex global_index_5000 --rindex local_index --rlabel '' \
+Catactor $OPTIONS $DR_OPTIONS --gene-name '' --clabel $clabel --cindex global_index_5000 --rindex local_index --rlabel '' \
 	--dir $DDIR --adir $DDIR --row $ROW_DATA --column $COLUMN_DATA \
 	--mdir $mdir --markers $marker_file --cluster $CLUSTERS \
 	--output ${GSE}_${dist} preprocess $MAT_DATA
 break
 elif [ "$METHOD" == "test" ]; then
-Catactor $OPTIONS --update --test-vis --clabel $clabel --cindex global_index_5000 --rindex local_index --rlabel '' \
+Catactor $OPTIONS --update --test-vis --clabel $clabel --cindex global_index --rindex local_index --rlabel '' \
 	--dir $DDIR --adir $DDIR --row $ROW_DATA --column $COLUMN_DATA \
 	--mdir $mdir --markers $marker_file --cluster $CLUSTERS \
 	--output ${GSE}_${dist} visualization $MAT_DATA
 break
 elif [ "${METHOD}"  == "rank" ]; then
-Catactor $OPTIONS $DR_OPTIONS --gene-name gene_name --clabel $clabel --cindex global_index_5000 --rindex local_index --rlabel '' \
+Catactor $OPTIONS $DR_OPTIONS --gene-name '' --clabel $clabel --cindex global_index --rindex local_index --rlabel '' \
 	--dir $DDIR --adir $DDIR --row $ROW_DATA --column $COLUMN_DATA \
 	--mdir $mdir --markers $marker_file --cluster $CLUSTERS \
 	--output ${GSE}_${dist} visualization $MAT_DATA
 fi
 done
 done
+
+
 

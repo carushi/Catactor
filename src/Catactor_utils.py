@@ -402,7 +402,6 @@ class Annotation:
         self.args = args
         orig = os.path.dirname(os.path.abspath(__file__))
         self.anot_file = os.path.join(orig, "../data/Mus_musculus_sorted_trans_tss_1m.GRCm38.96.gtf")
-        # self.anot_gene_body_file = ""
         self.anot_gene_body_file = os.path.join(orig, "../data/Mus_musculus_sorted_trans.GRCm38.96.gtf")
         self.enh_file  = os.path.join(orig, "../data/mouse_permissive_enhancers_phase_1_and_2_mm10.bed")
         self.bl_file   = os.path.join(orig, "../data/mm10.blacklist.bed")
@@ -654,6 +653,8 @@ class Annotation:
             print('falied to load pybedtools', file=sys.std)
             return column_ann
         bed_columns = ['chr', 'start', 'end', 'name', 'score']
+        if not os.path.exists(blacklist_file):
+            return column_ann
         black = pd.read_csv(blacklist_file, sep="\t", header=None)
         black['name'] = "."; black['score'] = "."; # to avoid sam-like format
         black.columns = bed_columns

@@ -1,5 +1,4 @@
 ## python to divide datasets into each batch
-import sys
 import pandas as pd
 import scipy.sparse
 import os
@@ -20,7 +19,6 @@ def get_col_nglist(df, row, column, region_df, output='', min_threshold=2, z_thr
     # remove zscore > +-2
     zscore_vec = zscore(np.log10(coverage_cols+1))
     zscore_flag = [1 if abs(x) <= 2 else 0 for x in zscore_vec]
-    #order_cols = coverage_cols.argsort()[::-1]
     min_threshold_flag = [1 if x >= min_threshold else 0 for x in coverage_cols]
     ann_mat = pd.DataFrame({'global_index':np.arange(int(column)), 'zscore':zscore_flag, \
                   'min_cov':min_threshold_flag, 'cov':coverage_cols})
@@ -29,8 +27,6 @@ def get_col_nglist(df, row, column, region_df, output='', min_threshold=2, z_thr
     if remained is not None:
         ann_mat['remained'] = 0
         ann_mat['remained'][np.array(remained['name'].values)] = 1
-    print(ann_mat[ann_mat['chr'] == "chrM"])
-    print((2109604 in remained['name'].values))
     for top in [1, 5]:
         outlier = np.quantile(ann_mat['cov'].values, [1-0.001*top])
         ann_mat['top_'+str(top)+'perc'] = [(1 if x < outlier else 0) for x in ann_mat['cov'].values]
@@ -58,7 +54,7 @@ def get_row_nglist(df, row, column, barcodes, global_offset, output='', min_thre
     print(ann_mat.head())
 
 def filter_by_black_list(region, chromosome=['M', 'Y'], rem_small_chr=True, filter=True):
-    blacklist_file = "/data/rkawaguc/data/190417_genomic_annotation/mm10.blacklist.bed"
+    blacklist_file = os.path.join(os.path.abspath(__file__), '/data/'), mm10.blacklist.bed')
     black = pybedtools.BedTool(blacklist_file)
     bed_obj = region
     bed_obj['global_index'] = list(range(bed_obj.shape[0]))
@@ -73,7 +69,6 @@ def filter_by_black_list(region, chromosome=['M', 'Y'], rem_small_chr=True, filt
     for chr in chromosome:
         subt = subt.loc[(subt['chrom'] != 'chr'+chr.replace('chr', ''))]
     print('remained peaks', subt.shape)
-    #subt['region'] = [row['chrom']+":"+str(row['start'])+"-"+str(row['end']) for index, row in subt.iterrows()]
     return subt
 
 def get_bin_list(bin_file):
@@ -133,23 +128,19 @@ def write_batch_sparse_matrix(out_dir, bbarcodes, bmat, out_header, offset):
     scipy.io.mmwrite(os.path.join(out_dir, "atac_"+out_header+".mtx"), bmat, field='integer')
 
 # snap-based
-# output_dir = "/data/rkawaguc/data/191210_new_BICCN/from_snap/"
-# ng_dir = 'global_ng_list'
-input_dir = sys.argv[1]
-output_dir = sys.argv[2]
-
+output_dir = sys.args[1]
+ng_dir = sys.args[2]
 for bin in [1]:
     global_start = 0
-    # global_start = 121034
     for batch in ['3C1', '3C2', '4B3', '4B4', '4B5', '2C6', '2C7', '5D8', '5D9']:
-        count_file = os.path.join(input_dir, "sparse_mat_"+batch+"_"+str(bin)+"000.mtx")
-        barcode_file = os.path.join(input_dir, "barcodes_"+batch+"_"+str(bin)+"000.tsv")
-        bin_file = os.path.join(input_dir, "bin_"+batch+"_"+str(bin)+"000.tsv")
+        count_file = os.path.join(output_dir, "sparse_mat_"+batch+"_"+str(bin)+"000.mtx")
+        barcode_file = os.path.join(output_dir, "barcodes_"+batch+"_"+str(bin)+"000.tsv")
+        bin_file = os.path.join(output_dir, "bin_"+batch+"_"+str(bin)+"000.tsv")
         region = get_bin_list(bin_file)
         barcodes = get_barcodes(barcode_file)
         df, row, column, data = read_all_data_snapobj(count_file)
         region_df = pd.DataFrame(columns=['chr', 'start', 'end'], data=[('chr'+r[0].replace('chr', ''), r[1], r[2]) for r in region])
         remained = filter_by_black_list(region_df)
-        get_col_nglist(df, row, column, region_df, min_threshold=2, output=os.path.join(output_dir, 'global_bin_ng_'+str(bin)+'_'+batch+'.csv'), remained=remained)
-        get_row_nglist(df, row, column, barcodes, global_offset=global_start, min_threshold=1000, output=os.path.join(output_dir, 'global_cell_ng_'+str(bin)+'_'+batch+'.csv'))
+        get_col_nglist(df, row, column, region_df, min_threshold=2, output=os.path.join(output_dir, ng_dir, 'global_bin_ng_'+str(bin)+'_'+batch+'.csv'), remained=remained)
+        get_row_nglist(df, row, column, barcodes, global_offset=global_start, min_threshold=1000, output=os.path.join(output_dir, ng_dir, 'global_cell_ng_'+str(bin)+'_'+batch+'.csv'))
         global_start += int(row)
