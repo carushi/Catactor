@@ -11,6 +11,7 @@ from multiprocessing import Pool, Array, Process
 import seaborn as sns
 import subprocess
 import matplotlib.pyplot as plt
+import sys
 
 
 def get_col_nglist(df, row, column, region_df, output='', min_threshold=2, z_threshold=2, remained=None):
@@ -54,7 +55,7 @@ def get_row_nglist(df, row, column, barcodes, global_offset, output='', min_thre
     print(ann_mat.head())
 
 def filter_by_black_list(region, chromosome=['M', 'Y'], rem_small_chr=True, filter=True):
-    blacklist_file = os.path.join(os.path.abspath(__file__), '/data/'), mm10.blacklist.bed')
+    blacklist_file = os.path.join(os.path.abspath(__file__), '/data/', 'mm10.blacklist.bed')
     black = pybedtools.BedTool(blacklist_file)
     bed_obj = region
     bed_obj['global_index'] = list(range(bed_obj.shape[0]))
@@ -128,8 +129,8 @@ def write_batch_sparse_matrix(out_dir, bbarcodes, bmat, out_header, offset):
     scipy.io.mmwrite(os.path.join(out_dir, "atac_"+out_header+".mtx"), bmat, field='integer')
 
 # snap-based
-output_dir = sys.args[1]
-ng_dir = sys.args[2]
+output_dir = sys.argv[1]
+ng_dir = sys.argv[2]
 for bin in [1]:
     global_start = 0
     for batch in ['3C1', '3C2', '4B3', '4B4', '4B5', '2C6', '2C7', '5D8', '5D9']:
