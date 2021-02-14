@@ -7,23 +7,23 @@ cu_marker='cusanovich2018_inh.txt,cusanovich2018_ext.txt,cusanovich2018_gli.txt'
 tn_marker='tasic2018_gaba.txt,tasic2018_glu.txt,tasic2018_gli.txt'
 GSE=BICCN
 # Other options: --tfidf (TF-IDF) --bin (binary) 
-OPTIONS=" --na_filtering --original_filter --verbose "
+OPTIONS=" --na_filtering --original-filter --verbose "
 DR_OPTIONS=" --pca 20 --tsne-params nn=30,perplexity=100,learning_rate=100 "
 RESOLUTION=" --resolution 1.1 "
-if [ -z "$2" ]; then
+if [ -z "$1" ]; then
 	METHOD="preprocess"
 else
-	METHOD=$2
+	METHOD=$1
 fi
-if [ -z "$3" ]; then
+if [ -z "$2" ]; then
 	MDIR="../marker_genes/"
 else
-	MDIR=$3
+	MDIR=$2
 fi
-if [ -z "$4" ]; then
+if [ -z "$3" ]; then
 	DDIR="../mat_data/${GSE}"
 else
-	DDIR=$4
+	DDIR=$3
 fi
 
 COLUMN_DATA="global_bin_ng_1_3C1_with_bins_annot.csv,global_bin_ng_1_3C2_with_bins_annot.csv,global_bin_ng_1_4B3_with_bins_annot.csv,global_bin_ng_1_4B4_with_bins_annot.csv,global_bin_ng_1_4B5_with_bins_annot.csv,global_bin_ng_1_2C6_with_bins_annot.csv,global_bin_ng_1_2C7_with_bins_annot.csv,global_bin_ng_1_5D8_with_bins_annot.csv,global_bin_ng_1_5D9_with_bins_annot.csv"

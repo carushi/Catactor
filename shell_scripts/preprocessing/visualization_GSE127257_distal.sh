@@ -7,20 +7,20 @@ cu_marker='cusanovich2018_inh.txt,cusanovich2018_ext.txt,cusanovich2018_gli.txt'
 tn_marker='tasic2018_gaba.txt,tasic2018_glu.txt,tasic2018_gli.txt'
 OPTIONS=" --verbose " 
 DR_OPTIONS=" --pca 10 --tsne-params nn=30,perplexity=50,learning_rate=1000 "
-if [ -z "$2" ]; then
+if [ -z "$1" ]; then
 	METHOD="preprocess"
 else
-        METHOD=$2
+        METHOD=$1
 fi
-if [ -z "$3" ]; then
+if [ -z "$2" ]; then
         MDIR="../marker_genes/"
 else
-        MDIR=$3
+        MDIR=$2
 fi
-if [ -z "$4" ]; then
+if [ -z "$3" ]; then
         DDIR="../mat_data/${GSE}"
 else
-        DDIR=$4
+        DDIR=$3
 fi
 
 COLUMN_DATA=${GSE}_bin_ng_Ts11.csv,${GSE}_bin_ng_Ts12.csv,${GSE}_bin_ng_Ts21.csv,${GSE}_bin_ng_Ts22.csv,${GSE}_bin_ng_N11.csv,${GSE}_bin_ng_N12.csv,${GSE}_bin_ng_N21.csv,${GSE}_bin_ng_N22.csv

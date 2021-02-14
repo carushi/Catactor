@@ -9,20 +9,20 @@ tn_marker='tasic2018_gaba.txt,tasic2018_glu.txt,tasic2018_gli.txt'
 
 OPTIONS=" --na_filtering --norm --cfilter genome_flag --verbose --skip 2 --top-genes 10000 " 
 DR_OPTIONS=" --pca 50 --norm --tsne-params nn=30,perplexity=100,learning_rate=100 "
-if [ -z "$2" ]; then
+if [ -z "$1" ]; then
 	METHOD="preprocess"
 else
-        METHOD=$2
+        METHOD=$1
 fi
-if [ -z "$3" ]; then
+if [ -z "$2" ]; then
         MDIR="../marker_genes/"
 else
-        MDIR=$3
+        MDIR=$2
 fi
-if [ -z "$4" ]; then
+if [ -z "$3" ]; then
         DDIR="../mat_data/${GSE}"
 else
-        DDIR=$4
+        DDIR=$3
 fi
 
 COLUMN_DATA=${GSE}_bin_ng_Actx_with_bins_annot.csv

@@ -126,7 +126,8 @@ def get_parser():
     parser.add_argument('--rank', dest='rank', action='store_true', help='Convert matrix into rank before traning and testing')
     parser.add_argument('--simulate', dest='simulate', action='store_true', help='Down-sample simulation')
     parser.add_argument('--na_filtering', dest='na_filt', action='store_true', help='Remove unannotated data before dimension reduction')
-    parser.add_argument('--prediction', dest='prediction', type=str, default='', help='prediction target (celltype, cluster, inex, neuron)')
+    parser.add_argument('--prediction', dest='prediction', type=str, default='', help='Prediction target (celltype, cluster, inex, neuron)')
+    parser.add_argument('--annotation_setting', dest='ann_setting', type=str, default='', help='Input file for annotation files.')
     return parser
 
 def extract_mode(args):
@@ -170,15 +171,6 @@ def get_celltype_category(sample_types):
         sample_uniq = ['OT', 'EX', 'IN', 'MG', 'OG']
     sample_uniq = [x for x in sample_uniq if x in sample_types]
     return [str(sample_uniq.index(x))+'_'+x if x in sample_uniq else str(len(sample_uniq))+'_NA' for x in sample_types]
-
-# def simple_marker_palette(sample_types, palette_name):
-#     if 'AC' in sample_types:
-#         sample_uniq = ['AC', 'IN', 'EX', 'MG', 'OG', 'OT', 'nan']
-#     else:
-#         sample_uniq = ['OT', 'IN', 'EX', 'MG', 'OG', 'nan']
-#     sample_uniq = [x for x in sample_uniq if x in sample_types]
-#     sample_dict = dict([(sam, col) for sam, col in zip(sample_uniq, sns.color_palette(palette_name, len(sample_uniq)))])
-#     return sample_dict
 
 def neuron_greater(a, b):
     if a == b:
@@ -389,11 +381,11 @@ def add_cluster_supervised(supervised, adata, target, original):
 
 def parse_gene_description(description, index):
     if not isinstance(description, str):
-        return ''
+        return 'NA'
     type_list = description.split('; ')
     selected = [x for x in type_list if index in x]
     if len(selected) == 0:
-        return ''
+        return 'NA'
     return selected[0].split(' ')[1].strip('\"')
 
 class Annotation:
@@ -405,6 +397,24 @@ class Annotation:
         self.anot_gene_body_file = os.path.join(orig, "../data/Mus_musculus_sorted_trans.GRCm38.96.gtf")
         self.enh_file  = os.path.join(orig, "../data/mouse_permissive_enhancers_phase_1_and_2_mm10.bed")
         self.bl_file   = os.path.join(orig, "../data/mm10.blacklist.bed")
+        self.target_chromosome = ['M', 'Y']
+        self.gene_label = 'gene_name'
+        if self.args['ann_setting'] != '':
+            self.read_ann_setting()
+        
+    def read_ann_setting(self):
+        arg_list = ['anot_file', 'anot_gene_body_file', 'enh_file', 'bl_file', 'target_chromosome', 'gene_label']
+        count = 0
+        with open(self.args['ann_setting']) as f:
+            for line in f.readlines():
+                if line == '' or line[0] != '#':
+                    if line != '':
+                        exec('self.'+arg_list[count]+' = \"'+line.rstrip('\n')+'\"')
+                    count += 1
+        if self.args['verbose']:
+            print('Read annotation settings')
+            for i, arg in enumerate(arg_list):
+                exec('print(\''+arg+'\', self.'+arg+')')
 
     def construct_different_bin_ann(self, column_ann):
         column_ann = column_ann.sort_values(by=['chr', 'start'])
@@ -423,7 +433,6 @@ class Annotation:
         print('-- Construct', peak_flag)
         for step in range(max(min_step, self.args['min_bin']), self.args['max_bin']+self.args['step_bin'], max(min_step, self.args['step_bin'])):
             print(' --- Step:', step)
-            # print(column_ann.columns)
             if 'global_index_'+str(step) in column_ann.columns:
                 column_ann = column_ann.drop(columns='global_index_'+str(step))
             column_ann.loc[:, "chr_index"] = np.floor(start_index/step).astype(int).values
@@ -432,6 +441,13 @@ class Annotation:
             candidates.loc[:,'global_index_'+str(step)] = list(range(0, candidates.shape[0]))
             column_ann = column_ann.merge(candidates, how='left', on=["chr", "chr_index"])
             column_ann = column_ann.drop(columns=['chr_index'])
+        return column_ann
+
+    def convert_df_for_bedobj(self, column_ann):
+        bed_columns = ['chr', 'start', 'end', 'name', 'score']
+        column_ann['name'] = '.'; column_ann['score'] = '.'
+        column_ann = column_ann[bed_columns+[x for x in column_ann.columns if x not in bed_columns]]
+        column_ann['chr'] = [str(chr).replace('chr', '') for chr in column_ann['chr'].values]
         return column_ann
 
     def merge_bed_df(self, genes_ann, column_ann, file=True, head='', merged_gene_id_col=None):
@@ -444,39 +460,9 @@ class Annotation:
             genes = pybedtools.bedtool.BedTool(genes_ann)
         else:
             genes = pybedtools.bedtool.BedTool.from_dataframe(genes_ann).sort()
-        peaks = pybedtools.bedtool.BedTool.from_dataframe(column_ann).sort()
+        peaks = pybedtools.bedtool.BedTool.from_dataframe(self.convert_df_for_bedobj(column_ann)).sort()
         nearby = peaks.intersect(genes, s=False, wa=True, wb=True)
         return nearby.to_dataframe(header=None, error_bad_lines=False)
-        # else:
-        #     nearby = peaks.closest(genes, s=False, D='ref')
-        #     data = nearby.to_dataframe(header=None, error_bad_lines=False)
-        # if merged_gene_id_col is None:
-        #     merged_gene_id_col = data.shape[1]-3
-        # id_data = pd.DataFrame({'chr':data.iloc[:,0], 'start':data.iloc[:,1], 'end':data.iloc[:,2],        \
-        #         head+'gene_id':[parse_gene_description(x, 'gene_id') for x in data.iloc[:,merged_gene_id_col].values],     \
-        #         head+'gene_name':[parse_gene_description(x, 'gene_name') for x in data.iloc[:,merged_gene_id_col].values], \
-        #         'strand':data.iloc[:,merged_gene_id_col-2].values, head+'dist': data.iloc[:,-1].astype(float)})
-        # return pd.merge(column_ann.astype(str), id_data.astype(str), how='left', left_on=['chr', 'start', 'end'], right_on=['chr', 'start', 'end'])
-
-    def convert_df_to_bedobj(self, column_ann):
-        bed_columns = ['chr', 'start', 'end', 'name', 'score']
-        column_ann['name'] = '.'; column_ann['score'] = '.'
-        column_ann = column_ann[bed_columns+[x for x in column_ann.columns if x not in bed_columns]]
-        column_ann['chr'] = [str(chr).replace('chr', '') for chr in column_ann['chr'].values]
-        return column_ann
-
-    def make_distal_annotation_matrix(self, output):
-        with open(output+'_'+'mgene'+'_col_mat.mtx') as f:
-            for i in range(2): f.readline();
-            contents = f.readline().rstrip('\n').split(' ')
-            row, col, count = contents[0], contents[1], contents[2]
-        row_num, col_num, count = int(row), int(col), int(count)
-        mat_a, row_a, col_a, data_a = read_sparse_matrix('./', output+'_'+'mgene_col_mat.mtx', 2)
-        mat_b, row_b, col_b, data_b = read_sparse_matrix('./', output+'_'+'mproximal_col_mat.mtx', 2)
-        assert row_a == row_b and col_a == col_b
-        mat_c = mat_a-mat_b
-        scipy.io.mmwrite(output+'_mdistal_col_mat.mtx', mat_c.astype(int))
-        copyfile(output+'_'+'mgene_gene.csv', output+'_'+'mdistal_gene.csv')
 
     def change_range_roi(self, genes, method):
         if method == 'mgb':
@@ -495,50 +481,84 @@ class Annotation:
             genes.loc[:,'end'] = end
         return genes
 
-    def add_gene_annotation_matrix(self, ori_column_ann, file, output, gene_id_col=9, method="mgb"):
+    def output_column_matrix_with_basic_ann(self, output, method, genes, gene_id_uniq):
         def convert_int_and_str(x):
             return ','.join(list(map(str, list(map(int, x)))))
-        column_ann = self.convert_df_to_bedobj(ori_column_ann)
-        ori_genes = pd.read_csv(file, header=None, sep="\t")
-        ori_genes.columns = ['chr', 'type', 'feature', 'start', 'end', '.', 'strand', '..', 'description']
-        ori_genes = ori_genes.loc[:,['chr', 'start', 'end', '.', 'strand', 'description']]
-        description = ori_genes.columns[ori_genes.shape[1]-1]
-        ori_genes = ori_genes.assign(gene_id=[parse_gene_description(x, 'gene_id') for x in ori_genes.loc[:,'description']])
-        ori_genes = ori_genes.assign(gene_name=[parse_gene_description(x, 'gene_name') for x in ori_genes.loc[:,'description']])
-        # extend tss 2kb
-        genes = self.change_range_roi(ori_genes, method)
-        data = self.merge_bed_df(genes, column_ann, False, 'over_', 23)
-        data.columns = list(column_ann.columns) + ['gene_'+x if x in column_ann.columns else x for x in genes.columns]
-        assert 'gene_id' in data.columns
+        genes['chr'] = genes[[self.gene_label,'chr']].astype(str).groupby([self.gene_label])['chr'].transform(lambda x: ','.join(x))
+        genes['start'] = genes[[self.gene_label,'start']].groupby([self.gene_label])['start'].transform(convert_int_and_str)
+        genes['end'] = genes[[self.gene_label,'end']].groupby([self.gene_label])['end'].transform(convert_int_and_str)
+        if self.gene_label != 'gene_name':
+            genes['gene_name'] = genes[[self.gene_label,'gene_name']].groupby([self.gene_label])['gene_name'].transform(lambda x: ','.join(x))
+        if self.gene_label != 'gene_id':
+            genes['gene_id'] = genes[[self.gene_label,'gene_id']].groupby([self.gene_label])['gene_id'].transform(lambda x: ','.join(x))
+        genes = genes[['gene_id','chr', 'start', 'end', 'gene_name']].drop_duplicates()
+        genes.index = genes.loc[:,self.gene_label]
+        genes = genes.loc[gene_id_uniq.keys(),:]
+        genes = genes.assign(global_index=[gene_id_uniq[x] for x in genes.index])
+        genes.to_csv(output+'_'+method+'_gene.csv', sep=" ")
+
+    def extract_overlapped_regions(self, gene_id_uniq, data, column_ann):
         # set unique id
-        gene_id = sorted(ori_genes.gene_name.unique())
-        if '' in gene_id: gene_id.remove('')
+        for id in gene_id_uniq.keys():
+            overlapped = data.loc[data.loc[:,self.gene_label] == id,:]
+            for o in column_ann.loc[column_ann.loc[:,'annot'].isin(overlapped['annot']),:].index:
+                yield o, gene_id_uniq[id]
+
+    def get_uniq_gene_id(self, ori_genes, method, column_ann):
+        genes = self.change_range_roi(ori_genes, method)
+        overlapped_data = self.merge_bed_df(genes, column_ann, False, 'over_', 23)
+        overlapped_data.columns = list(column_ann.columns) + ['gene_'+x if x in column_ann.columns else x for x in genes.columns]
+        assert 'gene_id' in overlapped_data.columns
+        # set unique id
+        gene_id = sorted(ori_genes.loc[:, self.gene_label].unique())
+        while '' in gene_id: gene_id.remove('')
+        while 'NA' in gene_id: gene_id.remove('NA')
         gene_id_uniq = dict([(x, i) for i, x in enumerate(gene_id)])
+        return gene_id_uniq, overlapped_data
+        
+
+    def output_column_matrix_with_one2multi_ann(self, output, method, column_ann, overlapped_data, gene_id_uniq):
+        # extend tss 2kb
         row_num, col_num = max(column_ann.index)+1, len(gene_id_uniq)
         column_ann.start = column_ann.start.astype(float)
         column_ann.end = column_ann.end.astype(float)
         count = 0
         with open(output+'_'+method+'_col_mat_temp.mtx', 'w') as f:
-            for id in gene_id_uniq.keys():
-                if id == '': continue
-                overlapped = data.loc[data.loc[:,'gene_name'] == id,:].loc[:,'annot']
-                for o in column_ann.loc[column_ann.loc[:,'annot'].isin(overlapped),:].index:
-                    f.write(str(o+1)+' '+str(gene_id_uniq[id]+1)+' 1\n')
-                count += overlapped.shape[0]
+            for i, (o, g) in enumerate(self.extract_overlapped_regions(gene_id_uniq, overlapped_data, column_ann)):
+                f.write(str(o+1)+' '+str(g+1)+' 1\n')
+            count = i+1
         with open(output+'_'+method+'_col_mat.mtx', 'w') as f:
             f.write('%%MatrixMarket matrix coordinate integer general\n%\n')
             f.write(str(row_num)+' '+str(col_num)+' '+str(count)+'\n')
         os.system('cat  '+output+'_'+method+'_col_mat_temp.mtx'+' >> '+output+'_'+method+'_col_mat.mtx')
         os.remove(output+'_'+method+'_col_mat_temp.mtx')
-        ori_genes['chr'] = ori_genes[['gene_name','chr']].astype(str).groupby(['gene_name'])['chr'].transform(lambda x: ','.join(x))
-        ori_genes['start'] = ori_genes[['gene_name','start']].groupby(['gene_name'])['start'].transform(convert_int_and_str)
-        ori_genes['end'] = ori_genes[['gene_name','end']].groupby(['gene_name'])['end'].transform(convert_int_and_str)
-        ori_genes['gene_id'] = ori_genes[['gene_name','gene_id']].groupby(['gene_name'])['gene_id'].transform(lambda x: ','.join(x))
-        ori_genes = ori_genes[['gene_id','chr', 'start', 'end', 'gene_name']].drop_duplicates()
-        ori_genes.index = ori_genes.loc[:,'gene_name']
-        ori_genes = ori_genes.loc[gene_id_uniq.keys(),:]
-        ori_genes = ori_genes.assign(global_index=[gene_id_uniq[x] for x in ori_genes.index])
-        ori_genes.to_csv(output+'_'+method+'_gene.csv', sep=" ")
+
+
+    def add_gene_annotation_matrix(self, ori_column_ann, file, output, gene_id_col=9, method="mgb"):
+        column_ann = self.convert_df_for_bedobj(ori_column_ann)
+        genes = pd.read_csv(file, header=None, sep="\t")
+        if len(genes.columns) == 9:
+            genes.columns = ['chr', 'type', 'feature', 'start', 'end', '.', 'strand', '..', 'description']
+        genes = genes.loc[:,['chr', 'start', 'end', '.', 'strand', 'description']]
+        genes = genes.assign(gene_id=[parse_gene_description(x, 'gene_id') for x in genes.loc[:,'description']])
+        genes = genes.assign(gene_name=[parse_gene_description(x, 'gene_name') for x in genes.loc[:,'description']])
+        gene_id_uniq, overlapped_data = self.get_uniq_gene_id(genes, method, ori_column_ann)
+        self.output_column_matrix_with_basic_ann(output, method, genes, gene_id_uniq)
+        self.output_column_matrix_with_one2multi_ann(output, method, ori_column_ann, overlapped_data, gene_id_uniq)
+
+    def make_distal_annotation_matrix(self, output):
+        with open(output+'_'+'mgene'+'_col_mat.mtx') as f:
+            for i in range(2): f.readline();
+            contents = f.readline().rstrip('\n').split(' ')
+            row, col, count = contents[0], contents[1], contents[2]
+        row_num, col_num, count = int(row), int(col), int(count)
+        mat_a, row_a, col_a, data_a = read_sparse_matrix('./', output+'_'+'mgene_col_mat.mtx', 2)
+        mat_b, row_b, col_b, data_b = read_sparse_matrix('./', output+'_'+'mproximal_col_mat.mtx', 2)
+        assert row_a == row_b and col_a == col_b
+        mat_c = mat_a-mat_b
+        scipy.io.mmwrite(output+'_mdistal_col_mat.mtx', mat_c.astype(int))
+        copyfile(output+'_'+'mgene_gene.csv', output+'_'+'mdistal_gene.csv')
+
 
     def add_gene_annotation(self, column_ann, file, head='', gene_id_col=9):
         try:
@@ -546,7 +566,7 @@ class Annotation:
         except:
             print('falied to load pybedtools', file=sys.std)
             return column_ann
-        column_ann = self.convert_df_to_bedobj(column_ann)
+        column_ann = self.convert_df_for_bedobj(column_ann)
         genes = pybedtools.bedtool.BedTool(file)
         peaks = pybedtools.BedTool.from_dataframe(column_ann).sort()
         if len(head) > 0:
@@ -563,15 +583,9 @@ class Annotation:
             print(data.columns)
             print(column_ann.columns)
             print(gene_id_col, merged_gene_id_col)
-        # def parse_gene_description(description, index):
-        #     type_list = description.split('; ')
-        #     selected = [x for x in type_list if index in x]
-        #     if len(selected) == 0:
-        #         return ''
-        #     #assert len(selected[0].split(' ')[1].strip('\"')) > 0 , description
-        #     return selected[0].split(' ')[1].strip('\"')
         if self.args['verbose']:
             print('-- Searching', data.iloc[0,merged_gene_id_col])
+            print(data.head())
         if 'gene_id' in column_ann:
             column_ann = column_ann.drop(columns='gene_id')
         id_data = pd.DataFrame({'chr':data.iloc[:,0], 'start':data.iloc[:,1], 'end':data.iloc[:,2],        \
@@ -592,14 +606,7 @@ class Annotation:
             else:
                 return (row[dist_label] >= -2000 and row[dist_label] <= 0)
             return None
-        if 'annot' not in ori_column_ann.columns:
-            ori_column_ann = ori_column_ann.assign(annot=['chr'+str(row['chr']).replace('chr', '')+'_'+str(row['start'])+'_'+str(row['end']) for i, row in ori_column_ann.iterrows()])
         column_ann = self.add_gene_annotation(ori_column_ann, self.anot_file)
-        self.add_gene_annotation_matrix(ori_column_ann, self.anot_gene_body_file, output, method='mgb')
-        self.add_gene_annotation_matrix(ori_column_ann, self.anot_gene_body_file, output, method='mproximal')
-        self.add_gene_annotation_matrix(ori_column_ann, self.anot_gene_body_file, output, method='mgene')
-        self.make_distal_annotation_matrix(output)
-        print(column_ann.columns)
         column_ann.loc[:,column_ann.columns.str.endswith('dist')] = column_ann.loc[:,column_ann.columns.str.endswith('dist')].astype(float)
         uniq_gene_list = sorted(list(set(column_ann.loc[:,'gene_id'].dropna().astype(str))))
         uniq_gene_dict = dict([(x, i) for i, x in enumerate(uniq_gene_list)])
@@ -619,7 +626,8 @@ class Annotation:
         column_ann['id_order_distal_uniq'] = 'nan'
         cond = (column_ann.loc[:,'id_order_distal'].astype(float) >= 0)
         column_ann.loc[cond, 'id_order_distal_uniq'] = list(map(str, range(0, np.where(cond)[0].shape[0])))
-        return column_ann
+        column_ann = column_ann.drop_duplicates(['chr', 'start', 'end'], keep='first')
+        column_ann.to_csv(output, sep=",")
 
     def construct_coverage_filtered_bin(self, column_ann, min_threshold=1000):
         order_rows = column_ann['cov'].argsort()[::-1]
@@ -636,33 +644,37 @@ class Annotation:
         column_ann['cov_flag'] = [1 if x == 3 else 0 for x in column_ann['cov_flag']]
         return column_ann
 
+
     def filter_by_chr(self, column_ann, rem_small_chr=False):
-        target_chromosome = ['M', 'Y']
         if rem_small_chr:
             column_ann = column_ann.loc[column_ann.chrom.str.contains('^??$')]
-        for chr in target_chromosome:
+        for chr in self.target_chromosome:
             column_ann = column_ann.loc[(column_ann['chr'] != 'chr'+str(chr).replace('chr', ''))]
         if self.args['verbose']:
-            print('-- Remained peaks', column_ann.shape, 'after removing chromosomes', target_chromosome)
+            print('-- Remained peaks', column_ann.shape, 'after removing chromosomes', self.target_chromosome)
         return column_ann
 
-    def filter_by_black_list(self, column_ann, blacklist_file):
+    def filter_by_black_list(self, column_ann, blacklist_file, null_flag=False):
         try:
             import pybedtools
         except:
             print('falied to load pybedtools', file=sys.std)
-            return column_ann
+            if null_flag: return pd.DataFrame(columns=column_ann.columns)
+            else: return self.convert_df_for_bedobj(column_ann)
         bed_columns = ['chr', 'start', 'end', 'name', 'score']
         if not os.path.exists(blacklist_file):
-            return column_ann
+            if null_flag: return pd.DataFrame(columns=column_ann.columns)
+            else: return self.convert_df_for_bedobj(column_ann)
+        if self.verbose:
+            print('Filter out blacklist', blacklist_file)
         black = pd.read_csv(blacklist_file, sep="\t", header=None)
         black['name'] = "."; black['score'] = "."; # to avoid sam-like format
         black.columns = bed_columns
         black = black.sort_values(by=['chr', 'start'])
         bed_obj = column_ann
         bed_obj['name'] = '.'; bed_obj['score'] = '.'
-        bed_obj = bed_obj[bed_columns+[x for x in bed_obj.columns if x not in bed_columns]]
-        region_bt = pybedtools.bedtool.BedTool.from_dataframe(bed_obj)
+        bed_obj = bed_obj[bed_columns+[x for x in bed_obj.columns if x not in bed_columns]]        
+        region_bt = pybedtools.bedtool.BedTool.from_dataframe(bed_obj)        
         subt = region_bt.subtract(pybedtools.bedtool.BedTool.from_dataframe(black), A=True)
         subt = subt.to_dataframe(header=None)
         subt.columns = bed_obj.columns
@@ -673,15 +685,16 @@ class Annotation:
             sep = (',' if '.csv' in fname else '\t')
             row_ann = pd.read_csv(os.path.join(self.args['dir'], fname), index_col=0, header=(self.args['cheader'] if self.args['cheader'] != '' else 'infer'), sep=sep)
 
-
     def merge_and_set_flag(self, column_ann, subt, target, flag_name):
         if self.args['verbose']:
-            print(column_ann.shape)
+            print(column_ann.shape, 'x', subt.shape)
             print(column_ann.head())
-        column_ann = column_ann.merge(subt, on=['chr', 'start', 'end'], how='left', indicator=True)
-        column_ann[flag_name] = [1 if x == target else 0 for x in column_ann['_merge']]
-        column_ann = column_ann.drop(['_merge'], axis=1)
-        return column_ann
+        if subt.shape[0] == 0:
+            return column_ann
+        merged = column_ann.merge(subt.loc[:, ['chr', 'start', 'end']], on=['chr', 'start', 'end'], how='left', indicator=True)
+        merged[flag_name] = [1 if x == target else 0 for x in merged['_merge']]
+        merged = merged.drop(['_merge'], axis=1)
+        return merged
 
     def construct_basic_annotation_columns(self):
         for fname in self.args['files']:
@@ -695,18 +708,21 @@ class Annotation:
                 if self.args['verbose']:
                     print(column_ann.shape)
                     print(column_ann.head())
-                gen_loc_flag =  all([x in column_ann.columns for x in ['chr', 'start', 'end']])
-                if gen_loc_flag:
-                    subt = self.filter_by_black_list(column_ann, self.bl_file)
-                    subt = self.filter_by_chr(subt)
-                    column_ann = self.merge_and_set_flag(column_ann, subt, 'both', 'genome_flag')
-                    subt = self.filter_by_black_list(column_ann, self.enh_file)
-                    column_ann = self.merge_and_set_flag(column_ann, subt, 'left_only', 'enhancer')
+                subt = self.filter_by_black_list(column_ann, self.bl_file)
+                subt = self.filter_by_chr(subt)
+                column_ann = self.merge_and_set_flag(column_ann, subt, 'both', 'genome_flag')
+                subt = self.filter_by_black_list(column_ann, self.enh_file, null_flag=True)
+                column_ann = self.merge_and_set_flag(column_ann, subt, 'left_only', 'enhancer')
                 column_ann = self.construct_coverage_filtered_bin(column_ann)
-                if gen_loc_flag:
-                    column_ann = self.add_conditional_gene_features(column_ann, out_header)
-                    column_ann = column_ann.drop_duplicates(['chr', 'start', 'end'], keep='first')
-            column_ann.to_csv(output, sep=",")
+                if 'annot' not in column_ann.columns:
+                    column_ann = column_ann.assign(annot=['chr'+str(row['chr']).replace('chr', '')+'_'+str(row['start'])+'_'+str(row['end']) for i, row in column_ann.iterrows()])
+                self.add_conditional_gene_features(column_ann, output)
+                self.add_gene_annotation_matrix(column_ann, self.anot_gene_body_file, out_header, method='mgb')
+                self.add_gene_annotation_matrix(column_ann, self.anot_gene_body_file, out_header, method='mproximal')
+                self.add_gene_annotation_matrix(column_ann, self.anot_gene_body_file, out_header, method='mgene')
+                self.make_distal_annotation_matrix(output)        
+            else:
+                print('Wrong column names (chr, start, and end are necesasry):', column_ann.columns)
 
 def average_for_each_cluster(X, y_cluster):
     X = pd.DataFrame(X)

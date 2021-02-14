@@ -55,14 +55,16 @@ def get_row_nglist(df, row, column, barcodes, global_offset, output='', min_thre
     print(ann_mat.head())
 
 def filter_by_black_list(region, chromosome=['M', 'Y'], rem_small_chr=True, filter=True):
-    blacklist_file = os.path.join(os.path.abspath(__file__), '/data/', 'mm10.blacklist.bed')
-    black = pybedtools.BedTool(blacklist_file)
     bed_obj = region
     bed_obj['global_index'] = list(range(bed_obj.shape[0]))
     bed_obj.column = ['chrom', 'start', 'end', 'name']
     region_bt = pybedtools.bedtool.BedTool.from_dataframe(bed_obj)
+    blacklist_file = os.path.join(os.path.abspath(__file__), '/data/', 'mm10.blacklist.bed')
     print('before', bed_obj.shape)
     print(bed_obj.head())
+    if not os.path.exists(blacklist_file):
+        return region_bt
+    black = pybedtools.BedTool(blacklist_file)
     subt = region_bt.subtract(black, A=True).to_dataframe()
     print('blacklist', subt)
     if rem_small_chr:
