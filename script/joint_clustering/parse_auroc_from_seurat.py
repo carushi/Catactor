@@ -2,29 +2,22 @@ import pandas as pd
 import glob
 import os
 import numpy as np
+import sys
 from sklearn.metrics import roc_auc_score, precision_score, recall_score, accuracy_score
 
 atac_data = ['BICCN2', 'GSE111586', 'GSE123576', 'GSE126074', 'GSE127257', 'GSE1303990']
 rna_data = ['BICCN2', 'GSE126074', 'GSE1303990']
 rna_data = ['BICCN2']
-top_dir = "/home/rkawaguc/ipython/BICCN/script/Catactor/script/"
 
 def compute_auc_and_acc(problem, df):
-    print(df.columns)
-    print(df)
-    print(df.predicted.unique())
-    print('head')
     neuron_dict = {'IN':'P', 'EX':'P', 'OT':'N'}
     if problem == 'inex':
         df = df.loc[df.celltype.isin(['IN', 'EX']),:]
     scores = list(df.columns[df.columns.str.startswith('prediction.score')])
     scores.remove('prediction.score.max')
-    print(scores)
     assert df.loc[:, scores].sum(axis=1).max() < 1.000000001
     scores.remove('prediction.score.NA')
     if problem == 'neuron':
-        print(df.predicted.unique())
-        print(df.loc[pd.isnull(df.predicted),:])
         df.predicted = [neuron_dict[x] if x in neuron_dict else np.nan for x in df.predicted]
         df.celltype = [neuron_dict[x] if x in neuron_dict else np.nan for x in df.celltype]
         df['prediction.score.P'] = df.loc[:,['prediction.score.IN', 'prediction.score.EX']].sum(axis=1)
@@ -70,29 +63,23 @@ def read_seurat_results(data_a, data_b, comp_type, problem):
         for cell in performances:
             auc, acc, precision, recall, whole, ppos, tpos = performances[cell]
             results.append([cell, 'seurat_'+comp_type.split('_')[1], auc, acc, precision, recall, whole, ppos, tpos, roc_file, class_var, marker, target, problem, data_a, data_b])
-    print(results)
     df = pd.DataFrame(results)
     print(df.shape)
-    # os.exit()
     return df
 
-
+top_dir = './'
+if len(sys.argv) > 1:
+    top_dir = sys.argv[1]
 
 for problem in ['celltype', 'neuron', 'inex']:
     data = None
     columns = ['celltype', 'method', 'auc', 'acc', 'precision', 'recall', 'whole', 'ppos', 'tpos', 'roc_file', 'class', 'prior', 'target', 'problem', 'test', 'train']
     for atac in atac_data:
-        # if atac == "GSE126074":
-        #     continue
         for rna in rna_data:
             print(atac, rna)
             df = read_seurat_results(atac, rna, 'atac_rna', problem)
             df.columns = columns
             data = pd.concat((data, df), ignore_index=True, axis=0)
             print('merge', data)
-        # data.columns = columns
         data.to_csv(problem+'_gene_setable.csv')
     
-
-    # positive = 'P', 
-    # row = ['cell', problem, 

@@ -128,6 +128,8 @@ def get_parser():
     parser.add_argument('--na_filtering', dest='na_filt', action='store_true', help='Remove unannotated data before dimension reduction')
     parser.add_argument('--prediction', dest='prediction', type=str, default='', help='Prediction target (celltype, cluster, inex, neuron)')
     parser.add_argument('--annotation_setting', dest='ann_setting', type=str, default='', help='Input file for annotation files.')
+    parser.add_argument('--min_pc', dest='min_pc', type=int, default=2, help='The number of the minimum PC to be tested.')
+    parser.add_argument('--max_pc', dest='max_pc', type=int, default=50, help='The number of the maximum PC to be tested.')
     return parser
 
 def extract_mode(args):
@@ -716,11 +718,11 @@ class Annotation:
                 column_ann = self.construct_coverage_filtered_bin(column_ann)
                 if 'annot' not in column_ann.columns:
                     column_ann = column_ann.assign(annot=['chr'+str(row['chr']).replace('chr', '')+'_'+str(row['start'])+'_'+str(row['end']) for i, row in column_ann.iterrows()])
-                self.add_conditional_gene_features(column_ann, output)
-                self.add_gene_annotation_matrix(column_ann, self.anot_gene_body_file, out_header, method='mgb')
-                self.add_gene_annotation_matrix(column_ann, self.anot_gene_body_file, out_header, method='mproximal')
-                self.add_gene_annotation_matrix(column_ann, self.anot_gene_body_file, out_header, method='mgene')
-                self.make_distal_annotation_matrix(output)        
+                self.add_conditional_gene_features(column_ann.copy(), output)
+                self.add_gene_annotation_matrix(column_ann.copy(), self.anot_gene_body_file, out_header, method='mgb')
+                self.add_gene_annotation_matrix(column_ann.copy(), self.anot_gene_body_file, out_header, method='mproximal')
+                self.add_gene_annotation_matrix(column_ann.copy(), self.anot_gene_body_file, out_header, method='mgene')
+                self.make_distal_annotation_matrix(out_header)       
             else:
                 print('Wrong column names (chr, start, and end are necesasry):', column_ann.columns)
 

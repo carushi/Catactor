@@ -478,6 +478,8 @@ class Catactor:
             for method in ['umap']:
                 # for pc in [2, 3, 5, 8, 10, 15, 20]:
                 for pc in [10, 2, 3, 5, 8, 15, 20, 30, 40, 50]:
+                    if pc < self.args['min_pc']: continue
+                    if pc > self.args['max_pc']: continue
                     print(method, pc, nn)
                     if self.args['binary']:
                         sc.pp.neighbors(adata, metric='jaccard', n_pcs=pc, n_neighbors=nn)
@@ -501,7 +503,7 @@ class Catactor:
             adata.obs.drop([cluster_head+color], axis=1)
 
     def data_preprocess(self, adata):
-        color = ('celltype' if 'celltype' in adata.obs else 'cluster' if 'cluster' in adata.obs else 'cov')
+        color = ('celltype' if 'celltype' in adata.obs else 'cluster' if 'cluster' in adata.obs else 'batch' if 'batch' in adata.obs else 'cov')
         if color == 'celltype':
             adata.obs.loc[:,color] = get_celltype_category(convert_to_raw_celltype(adata.obs.loc[:,color].values))
         if self.args['goutlier'] > 0:
@@ -541,8 +543,8 @@ class Catactor:
             self.test_hvg_dimensions(adata, batch_header)
         n_top_genes, _, _, _, _ = self.read_dr_parameters()
         adata = self.data_postprocess(adata, n_top_genes, '_'+batch_header+'_pca_plot.png')
-        self.test_tsne_dimensions(adata, batch_header, color)
         self.check_data_property(adata, batch_header)
+        self.test_tsne_dimensions(adata, batch_header, color)
         return adata
 
     def add_dimension_reduction(self, adata, batch_header):
