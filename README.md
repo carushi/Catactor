@@ -1,5 +1,7 @@
 # Catactor: a pipeline for consensus scATAC-seq analysis using meta-analytic marker genes
+
 <img src="https://dl.dropboxusercontent.com/s/mgv0mmx0p0rctvm/logo_catactor.png?dl=0" width="300">
+
 *  Risa Karakida Kawaguchi, Ziqi Tang, Stephan Fischer, Rohit Tripathy, Peter K. Koo, Jesse Gillis. [Exploiting marker genes for robust classification and characterization of single-cell chromatin accessibility.](https://doi.org/10.1101/2021.04.01.438068) bioRxiv, 2021.
 * Catactor is a general pipeline for meta scATAC-seq analysis and works as a wrapper of Scanpy.
 
@@ -27,7 +29,7 @@ git clone https://github.com/carushi/Catactor
 
 ## Tutorial
 * example/mini_catactor_tutorial.ipynb for mini Catactor
-* example/tutorial.ipynb for processing all datasets used in this study
+* example/preprocessing.ipynb and tutorial.ipynb for processing all datasets used in this study
 
 ## References
  Risa Karakida Kawaguchi, Ziqi Tang, Stephan Fischer, Rohit Tripathy, Peter K. Koo, Jesse Gillis. [Exploiting marker genes for robust classification and characterization of single-cell chromatin accessibility.](https://doi.org/10.1101/2021.04.01.438068) bioRxiv, 2021.
@@ -54,7 +56,7 @@ in the same cell. Nature biotechnology, 37(12):1452-1457 2019.
 * TN marker set
     * Tasic, B., et al. Shared and distinct transcriptomic cell types across neocortical areas. Nature, 563(7729):72-78 2018.
 * Others
-    * Spektor, R., et al. Single cell atac-seq identies broad changes in neuronal abundance and chromatin accessibility in down syndrome. bioRxiv, 2019.
+    * Spektor, R., et al. Single cell atac-seq identifies broad changes in neuronal abundance and chromatin accessibility in down syndrome. bioRxiv, 2019.
     * Chen, S., et al. High-throughput sequencing of the transcriptome and chromatin accessibility
 in the same cell. Nature biotechnology, 37(12):1452-1457 2019.
 
