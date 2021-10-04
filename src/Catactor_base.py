@@ -275,8 +275,8 @@ class Catactor:
         return adata
 
     def plot_tsne_and_umap(self, adata, resolution, out, markers, all=False, plot_marker=False):
-        print(markers)
-        adata = adata[[(x == x and 'NA' not in x) for x in adata.obs.loc[:,'celltype']],:]
+        if 'celltype' in adata.obs:
+            adata = adata[[(x == x and 'NA' not in x) for x in adata.obs.loc[:,'celltype']],:]
         for label in self.dr_labels:
             if self.args['verbose']:
                 print('-- Plot embeded spaces', label)  

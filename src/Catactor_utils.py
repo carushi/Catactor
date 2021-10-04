@@ -280,8 +280,6 @@ def plot_seaborn_scatter(data, x, y, hue, out, kwargs, annot=False):
         for line in range(0, data.shape[0]):
             ax.text(data.iloc[line,:][x], data.iloc[line,:][y], str(line), horizontalalignment='left', size='small', color='black')
     fig = ax.get_figure()
-    # print(fig)
-    # print('????')
     fig.savefig(out, bbox_inches='tight')
     plt.close()
     plt.clf()
@@ -338,7 +336,12 @@ def read_biomarkers(marker_list, mdir, top_markers, verbose=True):
     for fbase in marker_list.split(','):
         fname = os.path.join(mdir, fbase)
         if '.csv' in fbase:
-            markers[os.path.basename(fname).split('.')[0]] = pd.read_csv(fname, header=0, index_col=0).index.tolist()
+            mat = pd.read_csv(fname, header=0, index_col=0)
+            if mat.shape[1] == 1:
+                markers[os.path.basename(fname).split('.')[0]] = mat.index.tolist()
+            else:
+                for c in mat.columns:
+                    markers[c] = mat.loc[:,c].values
         elif 'fc.txt' in fbase:
             markers[os.path.basename(fname).split('.')[0]] = pd.read_csv(fname, header=0, index_col=0, sep=' ', comment='#').index.tolist()[0:top_markers]
         else:
@@ -347,6 +350,7 @@ def read_biomarkers(marker_list, mdir, top_markers, verbose=True):
     if verbose:
         print('-- Read markers', markers.keys(), [(len(markers[key]), markers[key][0:3]) for key in markers])
     return markers
+
 
 def read_biomarkers_multiple(markers, mdir, verbose=True):
     global MAX_GENE
