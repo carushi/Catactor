@@ -34,7 +34,8 @@ git clone https://github.com/carushi/Catactor
 ## References
  Risa Karakida Kawaguchi, Ziqi Tang, Stephan Fischer, Rohit Tripathy, Peter K. Koo, Jesse Gillis. [Exploiting marker genes for robust classification and characterization of single-cell chromatin accessibility.](https://doi.org/10.1101/2021.04.01.438068) bioRxiv, 2021.
 ### Dataset
-* BRAIN Initiative Cell Census Network (BICCN), et al. A multimodal cell census and atlas of the mammalian primary motor cortex. bioRxiv, 2020.
+
+* BRAIN Initiative Cell Census Network (BICCN): Yao, Z., et al. A transcriptomic and epigenomic cell atlas of the mouse primary motor cortex. Nature 598, 103–110 (2021).
 * Preissl, S., et al. Single-nucleus analysis of accessible chromatin in developing mouse forebrain reveals cell-type-specific transcriptional regulation. Nature neuroscience, 21(3):432-439 2018.
 * Cusanovich DA., et al. A Single-Cell Atlas of In Vivo Mammalian Chromatin Accessibility. Cell, 23;174(5):1309-1324.e18 2018.
 * Lareau, CA., et al. Droplet-based combinatorial indexing for massive-scale single-cell
@@ -48,7 +49,6 @@ in the same cell. Nature biotechnology, 37(12):1452-1457 2019.
 * SF and SC marker sets
     * [MetaMarkers](https://github.com/gillislab/MetaMarkers)
     * Fischer S., et al. Meta-analytic markers reveal a generalizable description of cortical cell types. bioRxiv, 2021.
-    * BRAIN Initiative Cell Census Network (BICCN), et al. A multimodal cell census and atlas of the mammalian primary motor cortex.  bioRxiv, 2020.
 * CU marker set
     * Cusanovich, DA., et al. A Single-Cell Atlas of In Vivo Mammalian Chromatin Accessibility. Cell, 23;174(5):1309-1324.e18 2018.
 * TA marker set
